@@ -1,12 +1,4 @@
-# genetic programming uses variable length chromosomes (typically in tree / graphs)
-# expression trees: an individual in the population (a function)
-# internal nodes will be operatorss, leaves will be constant or variables operated on by functions
-# post order traversal (deal with the leaves then deal with the parent)
-
 # complicated idea: multiple population 
-
-# symbolic regression problem: figure out function form and their coefficients
-# opearators: selection, crossover, mutation
 
 # create random population {x, range of constants}
 
@@ -17,21 +9,9 @@
 # ~0.3 mutate child 
 # update population 
 
-# test population generation
-# test mutation
-# test crossover
-
-# hyperparameters: 
-# population size
-# mutation rate
-# crossover rate
-# number of generations
-# max depth of tree
-# chance of generating "x"
-
 import pandas as pd
 import numpy as np
-from Tree import Node, generate_random_tree, mutate
+from Tree import Node, generate_random_tree, mutate, crossover
 
 INITIAL_POPULATION_SIZE = 100 #500
 MAX_DEPTH = 5 # 2^(5-1)= 16 leaves
@@ -40,6 +20,7 @@ GENERATIONS = 5 #50
 CROSSOVER_RATE = 0.7
 CLONE_RATE = 0.1
 MUTATION_RATE = 0.2
+CROSS_OVER_MAX_DEPTH = 8
 
 X_PROBABILITY = 0.5
 LEAF_PROBABILITY = 0.2
@@ -63,7 +44,7 @@ def symbolic_regression():
                 parent1 = np.random.choice(population)
                 parent2 = np.random.choice(population)
                 # perform crossover
-                child = parent1.crossover(parent2)
+                child = crossover(parent1.copy(), parent2.copy(), OPERATORS, X_PROBABILITY, CROSS_OVER_MAX_DEPTH)
             elif p < CROSSOVER_RATE + CLONE_RATE:
                 # select one parent
                 parent = np.random.choice(population)
@@ -73,16 +54,13 @@ def symbolic_regression():
                 # select one parent
                 parent = np.random.choice(population)
                 # perform mutation
-                child = mutate(parent, OPERATORS, X_PROBABILITY)
+                child = mutate(parent.copy(), OPERATORS, X_PROBABILITY)
             new_population.append(child)
             # evaluate the individual on the training data
             # calculate fitness
             
         population = new_population
     return # function
-
-def crossover_individuals(parent1, parent2):
-    return parent1.crossover(parent2)
 
 
 def get_fitness(individual, x, y):
@@ -101,16 +79,26 @@ def main():
     test_df = df.drop(train_df.index)
     # generate_initial_population()
     # symbolic_regression()  
-    individual = generate_random_tree(OPERATORS, MAX_DEPTH, LEAF_PROBABILITY, X_PROBABILITY)
-    individual_tree = individual.__str__()
-    individual_str = individual.to_infix()
-    print(f"Original Individual Tree:\n{individual_tree}")
-    print(f"Original Individual: {individual_str}")
-    mutated = mutate(individual, OPERATORS, X_PROBABILITY)
-    mutated_tree = mutated.__str__()
-    mutated_str = mutated.to_infix()
-    print(f"Mutated Individual Tree:\n{mutated_tree}")
-    print(f"Mutated Individual: {mutated_str}")
+    individual_1 = generate_random_tree(OPERATORS, MAX_DEPTH, LEAF_PROBABILITY, X_PROBABILITY)
+    individual_1_tree = individual_1.__str__()
+    individual_1_str = individual_1.to_infix()
+    print(f"Original Individual Tree:\n{individual_1_tree}")
+    print(f"Original Individual: {individual_1_str}")
+    individual_2 = generate_random_tree(OPERATORS, MAX_DEPTH, LEAF_PROBABILITY, X_PROBABILITY)
+    individual_2_tree = individual_2.__str__()
+    individual_2_str = individual_2.to_infix()
+    print(f"Original Individual Tree:\n{individual_2_tree}")
+    print(f"Original Individual: {individual_2_str}")
+    # mutated = mutate(individual, OPERATORS, X_PROBABILITY)
+    # mutated_tree = mutated.__str__()
+    # mutated_str = mutated.to_infix()
+    # print(f"Mutated Individual Tree:\n{mutated_tree}")
+    # print(f"Mutated Individual: {mutated_str}")
+    crossover_node = crossover(individual_1, individual_2, CROSS_OVER_MAX_DEPTH)
+    crossover_tree = crossover_node.__str__()
+    crossover_str = crossover_node.to_infix()
+    print(f"Crossover Individual Tree:\n{crossover_tree}")
+    print(f"Crossover Individual: {crossover_str}")
 
 
 

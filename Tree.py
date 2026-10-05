@@ -47,7 +47,6 @@ class Node:
       if self.is_terminal():
         return 1
       return 1 + self.left.size() + self.right.size()
-
  
 
   #copy of tree
@@ -136,3 +135,45 @@ def get_all_nodes(node, nodes):
         get_all_nodes(node.left, nodes)
         get_all_nodes(node.right, nodes)
     return nodes
+
+def get_all_inner_nodes(node, nodes):
+    if node.is_terminal():
+        return nodes
+    else:
+        nodes.append(node)
+        get_all_inner_nodes(node.left, nodes)
+        get_all_inner_nodes(node.right, nodes)
+    return nodes
+
+def crossover(parent1, parent2, max_depth=8):
+    # choose a random nodes to cross over
+    nodes_1 = get_all_inner_nodes(parent1, [])
+    nodes_2 = get_all_inner_nodes(parent2, []) 
+
+    if (nodes_1 == []):
+        return parent2
+    elif (nodes_2 == []):
+        return parent1
+    else:
+        swap_parent_1 = random.choice(nodes_1)
+        swap_parent_2 = random.choice(nodes_2)
+        if (swap_parent_2.left == None):
+            subtree = swap_parent_2.right
+        elif (swap_parent_2.right == None): 
+            subtree = swap_parent_2.left
+        else:
+            subtree = random.choice([swap_parent_2.left, swap_parent_2.right])
+        
+        if (swap_parent_1.left == None): 
+            swap_parent_1.right = subtree
+        elif (swap_parent_1.right == None):
+            swap_parent_1.left = subtree
+        else:
+            if random.random() < 0.5:
+                swap_parent_1.left = subtree
+            else:
+                swap_parent_1.right = subtree
+
+        if parent1.depth() > max_depth:
+            return parent2
+        return parent1
