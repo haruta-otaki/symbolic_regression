@@ -39,7 +39,7 @@ def symbolic_regression():
     for generation in range(GENERATIONS):
         for individual in initial_population:
             # evaluate the individual on the training data
-            
+            adde
             # calculate fitness
             pass
 
