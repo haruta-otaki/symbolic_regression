@@ -104,6 +104,8 @@ def get_fitness(individual, x_values, y_true):
 def get_error(): 
     return 0
 
+def crossover_individuals(parent1, parent2):
+    return parent1.crossover(parent2)
 
 
 def get_fitness(individual, x, y):
@@ -162,15 +164,6 @@ def main():
     # print(f"Crossover Individual: {crossover_str}")
     
 
-    # # select the remaining 20% for testing using dropped indices
-    # test_df = df.drop(train_df.index)
-    # # generate_initial_population()
-    # # symbolic_regression()
-    root = generate_random_tree(OPERATORS, MAX_DEPTH, LEAF_PROBABILITY, X_PROBABILITY)
-    tree_representation = root.__str__()
-    equation_representation = root.to_infix()
-    print ("Tree Representation:\n", tree_representation)
-    print ("Equation Representation:\n", equation_representation)
 
 if __name__ == "__main__":
     main()
