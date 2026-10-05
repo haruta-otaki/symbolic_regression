@@ -10,16 +10,16 @@ class Node:
         self.left = left
         self.right = right
 
+  //only one
+
     def is_terminal(self):
         return self.left is None and self.right is None
 
     def evaluate(self, x):
        
-
     
         if self.value == "x":
             return x
-
         
         if self.is_terminal():
             return float(self.value)
@@ -53,6 +53,16 @@ class Node:
         return 1
 
       return 1 + max(self.left.depth(), self.right.depth())
+
+//size
+
+    def size(self):
+
+      if self.is_terminal():
+        return 1
+
+      return 1 + self.left.size() + self.right.size()
+
  
 
   //copy of tree
