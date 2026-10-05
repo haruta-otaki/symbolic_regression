@@ -17,9 +17,21 @@
 # ~0.3 mutate child 
 # update population 
 
+# test population generation
+# test mutation
+# test crossover
+
+# hyperparameters: 
+# population size
+# mutation rate
+# crossover rate
+# number of generations
+# max depth of tree
+# chance of generating "x"
+
 import pandas as pd
 import numpy as np
-from Tree import Node
+from Tree import Node, generate_random_tree
 
 INITIAL_POPULATION_SIZE = 100
 MAX_DEPTH = 4 #2^(4-1) = 8 nodes in the tree
@@ -28,13 +40,15 @@ GENERATIONS = 5
 CROSSOVER_RATE = 0.5
 CLONE_RATE = 0.3
 MUTATION_RATE = 0.2
+
+X_PROBABILITY = 0.5
+LEAF_PROBABILITY = 0.5
 initial_population = []
 
 # generate 
 def generate_initial_population():
     for _ in range(INITIAL_POPULATION_SIZE):
-        root = Node(OPERATORS, MAX_DEPTH)
-        root.generate_random_tree(root, MAX_DEPTH)
+        root = generate_random_tree(OPERATORS, MAX_DEPTH, LEAF_PROBABILITY, X_PROBABILITY)
         initial_population.append(root)
 
 def symbolic_regression():
@@ -63,23 +77,33 @@ def symbolic_regression():
             new_population.append(child)
             # evaluate the individual on the training data
             # calculate fitness
-            pass
+            
         population = new_population
     return # function
 
 
 
+def get_fitness(individual, x, y):
+    predictions = np.array([individual.evaluate(xi) for xi in x])
+    mse = np.mean((predictions - y) ** 2)
+    return mse
+
 
 def main():
-    df = pd.read_csv('data/dataset1.csv')
+    # df = pd.read_csv('data/dataset1.csv')
 
-    # select 80% of the data randomly for training
-    train_df = df.sample(frac=0.8, random_state=42)
+    # # select 80% of the data randomly for training
+    # train_df = df.sample(frac=0.8, random_state=42)
 
-    # select the remaining 20% for testing using dropped indices
-    test_df = df.drop(train_df.index)
-    generate_initial_population()
-    symbolic_regression()
+    # # select the remaining 20% for testing using dropped indices
+    # test_df = df.drop(train_df.index)
+    # # generate_initial_population()
+    # # symbolic_regression()
+    root = generate_random_tree(OPERATORS, MAX_DEPTH, LEAF_PROBABILITY, X_PROBABILITY)
+    tree_representation = root.__str__()
+    equation_representation = root.to_infix()
+    print ("Tree Representation:\n", tree_representation)
+    print ("Equation Representation:\n", equation_representation)
 
-
-
+if __name__ == "__main__":
+    main()
