@@ -25,6 +25,9 @@ INITIAL_POPULATION_SIZE = 100
 MAX_DEPTH = 4 #2^(4-1) = 8 nodes in the tree
 OPERATORS = ["+", "-", "*", "/"]
 GENERATIONS = 5
+CROSSOVER_RATE = 0.5
+CLONE_RATE = 0.3
+MUTATION_RATE = 0.2
 initial_population = []
 
 # generate 
@@ -35,16 +38,37 @@ def generate_initial_population():
         initial_population.append(root)
 
 def symbolic_regression():
-    # loop 
+    population = initial_population
     for generation in range(GENERATIONS):
-        for individual in initial_population:
+        new_population = []
+        for _ in range(INITIAL_POPULATION_SIZE):
+            p = np.random.random()
+            if p < CROSSOVER_RATE:
+                # select two parents 
+                # (implement logic to prioritize higher fitness)
+                parent1 = np.random.choice(population)
+                parent2 = np.random.choice(population)
+                # perform crossover
+                child = parent1.crossover(parent2)
+            elif p < CROSSOVER_RATE + CLONE_RATE:
+                # select one parent
+                parent = np.random.choice(population)
+                # clone the parent
+                child = parent.copy()
+            else:
+                # select one parent
+                parent = np.random.choice(population)
+                # perform mutation
+                child = parent.mutate()
+            new_population.append(child)
             # evaluate the individual on the training data
-            
             # calculate fitness
             pass
-
-
+        population = new_population
     return # function
+
+
+
 
 def main():
     df = pd.read_csv('data/dataset1.csv')
