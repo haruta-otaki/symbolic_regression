@@ -10,7 +10,7 @@ class Node:
         self.left = left
         self.right = right
 
-  //only one
+  #only one
 
     def is_terminal(self):
         return self.left is None and self.right is None
@@ -38,14 +38,14 @@ class Node:
             return left_value * right_value
 
         elif self.value == "/":
-          //incase of zero
+          #incase of zero
 
           if abs(right_value) < 1e  - 10:
             return left_value
 
           else return left_value / right_value
 
-//find depth
+#find depth
 
     def depth(self):
 
@@ -54,7 +54,7 @@ class Node:
 
       return 1 + max(self.left.depth(), self.right.depth())
 
-//size
+#size
 
     def size(self):
 
@@ -65,7 +65,7 @@ class Node:
 
  
 
-  //copy of tree
+  #copy of tree
 
     def copy(self):
 
