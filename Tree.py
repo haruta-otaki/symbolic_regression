@@ -75,8 +75,15 @@ class Node:
       return Node (self.value,
                    self.left.copy(),
                    self.right.copy())
+
+#print tree
+
+    def __str__(self):
       
-                   
+      if self.is_terminal():
+        return str(self.value)
+
+      return f"({self.left} {self.value} {self.right})"
             
 
        
