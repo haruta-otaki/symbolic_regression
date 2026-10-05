@@ -92,6 +92,9 @@ def get_fitness(individual, x_values, y_true):
 def get_error(): 
     return 0
 
+
+
+
 def main():
     df = pd.read_csv('data/dataset1.csv')
 
