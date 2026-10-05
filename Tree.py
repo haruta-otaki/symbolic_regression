@@ -7,6 +7,7 @@ class Node:
         self.value = value
         self.left = left
         self.right = right
+        self.fitness = 0
 
     def is_terminal(self):
         return self.left is None and self.right is None

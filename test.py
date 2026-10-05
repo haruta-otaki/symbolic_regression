@@ -11,6 +11,7 @@
 
 import pandas as pd
 import numpy as np
+from sklearn.metrics import r2_score
 from Tree import Node, generate_random_tree, mutate, crossover
 
 INITIAL_POPULATION_SIZE = 100 #500
@@ -24,15 +25,22 @@ CROSS_OVER_MAX_DEPTH = 8
 
 X_PROBABILITY = 0.5
 LEAF_PROBABILITY = 0.2
-initial_population = []
 
 # generate 
 def generate_initial_population():
+    initial_population = []
     for _ in range(INITIAL_POPULATION_SIZE):
         individual = generate_random_tree(OPERATORS, MAX_DEPTH, LEAF_PROBABILITY, X_PROBABILITY)
         initial_population.append(individual)
+    return initial_population
 
-def symbolic_regression():
+def symbolic_regression(train_df, initial_population):
+    x_values = train_df['x'].tolist()
+    y_true = train_df['f(x)'].tolist()
+    # initialize fitness for initial population
+    for individual in initial_population:
+        individual.fitness = get_fitness(individual, x_values, y_true)
+
     population = initial_population
     for generation in range(GENERATIONS):
         new_population = []
@@ -55,19 +63,16 @@ def symbolic_regression():
                 parent = np.random.choice(population)
                 # perform mutation
                 child = mutate(parent.copy(), OPERATORS, X_PROBABILITY)
+            child.fitness = get_fitness(child, x_values, y_true)
             new_population.append(child)
-            # evaluate the individual on the training data
-            # calculate fitness
-            
         population = new_population
     return # function
 
-
-def get_fitness(individual, x, y):
-    predictions = np.array([individual.evaluate(xi) for xi in x])
-    mse = np.mean((predictions - y) ** 2)
-    return mse
-
+def get_fitness(individual, x_values, y_true):
+    y_pred = []
+    for x in x_values:
+        y_pred.append(individual.evaluate(x))
+    return r2_score(y_true, y_pred)
 
 def main():
     df = pd.read_csv('data/dataset1.csv')
@@ -77,28 +82,32 @@ def main():
 
     # select the remaining 20% for testing using dropped indices
     test_df = df.drop(train_df.index)
-    # generate_initial_population()
-    # symbolic_regression()  
-    individual_1 = generate_random_tree(OPERATORS, MAX_DEPTH, LEAF_PROBABILITY, X_PROBABILITY)
-    individual_1_tree = individual_1.__str__()
-    individual_1_str = individual_1.to_infix()
-    print(f"Original Individual Tree:\n{individual_1_tree}")
-    print(f"Original Individual: {individual_1_str}")
-    individual_2 = generate_random_tree(OPERATORS, MAX_DEPTH, LEAF_PROBABILITY, X_PROBABILITY)
-    individual_2_tree = individual_2.__str__()
-    individual_2_str = individual_2.to_infix()
-    print(f"Original Individual Tree:\n{individual_2_tree}")
-    print(f"Original Individual: {individual_2_str}")
-    # mutated = mutate(individual, OPERATORS, X_PROBABILITY)
-    # mutated_tree = mutated.__str__()
-    # mutated_str = mutated.to_infix()
-    # print(f"Mutated Individual Tree:\n{mutated_tree}")
-    # print(f"Mutated Individual: {mutated_str}")
-    crossover_node = crossover(individual_1, individual_2, CROSS_OVER_MAX_DEPTH)
-    crossover_tree = crossover_node.__str__()
-    crossover_str = crossover_node.to_infix()
-    print(f"Crossover Individual Tree:\n{crossover_tree}")
-    print(f"Crossover Individual: {crossover_str}")
+
+    initial_population = generate_initial_population()
+    symbolic_regression(train_df, initial_population)  
+
+    # testing: 
+
+    # individual_1 = generate_random_tree(OPERATORS, MAX_DEPTH, LEAF_PROBABILITY, X_PROBABILITY)
+    # individual_1_tree = individual_1.__str__()
+    # individual_1_str = individual_1.to_infix()
+    # print(f"Original Individual Tree:\n{individual_1_tree}")
+    # print(f"Original Individual: {individual_1_str}")
+    # individual_2 = generate_random_tree(OPERATORS, MAX_DEPTH, LEAF_PROBABILITY, X_PROBABILITY)
+    # individual_2_tree = individual_2.__str__()
+    # individual_2_str = individual_2.to_infix()
+    # print(f"Original Individual Tree:\n{individual_2_tree}")
+    # print(f"Original Individual: {individual_2_str}")
+    # # mutated = mutate(individual, OPERATORS, X_PROBABILITY)
+    # # mutated_tree = mutated.__str__()
+    # # mutated_str = mutated.to_infix()
+    # # print(f"Mutated Individual Tree:\n{mutated_tree}")
+    # # print(f"Mutated Individual: {mutated_str}")
+    # crossover_node = crossover(individual_1, individual_2, CROSS_OVER_MAX_DEPTH)
+    # crossover_tree = crossover_node.__str__()
+    # crossover_str = crossover_node.to_infix()
+    # print(f"Crossover Individual Tree:\n{crossover_tree}")
+    # print(f"Crossover Individual: {crossover_str}")
 
 
 
