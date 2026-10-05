@@ -104,7 +104,7 @@ class Node:
         return f"({self.left.to_infix()} {self.value} {self.right.to_infix()})"
 
 
-def generate_random_tree(operators, depth=4, p_terminal=0.5, p_x=0.5):
+def generate_random_tree(operators, depth=5, p_terminal=0.2, p_x=0.5):
     if depth <= 1 or random.random() < p_terminal:
         if random.random() < p_x:
             return Node("x")
@@ -112,3 +112,27 @@ def generate_random_tree(operators, depth=4, p_terminal=0.5, p_x=0.5):
     return Node(random.choice(operators),
                 generate_random_tree(operators, depth - 1, p_terminal, p_x),
                 generate_random_tree(operators, depth - 1, p_terminal, p_x))
+
+def mutate(node, operators, p_x=0.5):
+    # choose a random node to mutate
+    nodes = get_all_nodes(node, [])
+    mutate_node = random.choice(nodes)
+    print(f"Mutating node with value: {mutate_node.value}")
+    if mutate_node.is_terminal():
+        # change the terminal value
+        if random.random() < p_x:
+            mutate_node.value = "x"
+        else:
+            mutate_node.value = str(round(random.uniform(-10, 10), 2)) 
+    else:
+        # change the operator
+        mutate_node.value = random.choice(operators)
+    print(f"Mutated node value: {mutate_node.value}")
+    return node
+        
+def get_all_nodes(node, nodes):
+    nodes.append(node)
+    if not node.is_terminal():
+        get_all_nodes(node.left, nodes)
+        get_all_nodes(node.right, nodes)
+    return nodes

@@ -31,25 +31,25 @@
 
 import pandas as pd
 import numpy as np
-from Tree import Node, generate_random_tree
+from Tree import Node, generate_random_tree, mutate
 
-INITIAL_POPULATION_SIZE = 100
-MAX_DEPTH = 4 #2^(4-1) = 8 nodes in the tree
+INITIAL_POPULATION_SIZE = 100 #500
+MAX_DEPTH = 5 # 2^(5-1)= 16 leaves
 OPERATORS = ["+", "-", "*", "/"]
-GENERATIONS = 5
-CROSSOVER_RATE = 0.5
-CLONE_RATE = 0.3
+GENERATIONS = 5 #50
+CROSSOVER_RATE = 0.7
+CLONE_RATE = 0.1
 MUTATION_RATE = 0.2
 
 X_PROBABILITY = 0.5
-LEAF_PROBABILITY = 0.5
+LEAF_PROBABILITY = 0.2
 initial_population = []
 
 # generate 
 def generate_initial_population():
     for _ in range(INITIAL_POPULATION_SIZE):
-        root = generate_random_tree(OPERATORS, MAX_DEPTH, LEAF_PROBABILITY, X_PROBABILITY)
-        initial_population.append(root)
+        individual = generate_random_tree(OPERATORS, MAX_DEPTH, LEAF_PROBABILITY, X_PROBABILITY)
+        initial_population.append(individual)
 
 def symbolic_regression():
     population = initial_population
@@ -73,7 +73,7 @@ def symbolic_regression():
                 # select one parent
                 parent = np.random.choice(population)
                 # perform mutation
-                child = parent.mutate()
+                child = mutate(parent, OPERATORS, X_PROBABILITY)
             new_population.append(child)
             # evaluate the individual on the training data
             # calculate fitness
@@ -81,6 +81,8 @@ def symbolic_regression():
         population = new_population
     return # function
 
+def crossover_individuals(parent1, parent2):
+    return parent1.crossover(parent2)
 
 
 def get_fitness(individual, x, y):
@@ -90,20 +92,27 @@ def get_fitness(individual, x, y):
 
 
 def main():
-    # df = pd.read_csv('data/dataset1.csv')
+    df = pd.read_csv('data/dataset1.csv')
 
-    # # select 80% of the data randomly for training
-    # train_df = df.sample(frac=0.8, random_state=42)
+    # select 80% of the data randomly for training
+    train_df = df.sample(frac=0.8, random_state=42)
 
-    # # select the remaining 20% for testing using dropped indices
-    # test_df = df.drop(train_df.index)
-    # # generate_initial_population()
-    # # symbolic_regression()
-    root = generate_random_tree(OPERATORS, MAX_DEPTH, LEAF_PROBABILITY, X_PROBABILITY)
-    tree_representation = root.__str__()
-    equation_representation = root.to_infix()
-    print ("Tree Representation:\n", tree_representation)
-    print ("Equation Representation:\n", equation_representation)
+    # select the remaining 20% for testing using dropped indices
+    test_df = df.drop(train_df.index)
+    # generate_initial_population()
+    # symbolic_regression()  
+    individual = generate_random_tree(OPERATORS, MAX_DEPTH, LEAF_PROBABILITY, X_PROBABILITY)
+    individual_tree = individual.__str__()
+    individual_str = individual.to_infix()
+    print(f"Original Individual Tree:\n{individual_tree}")
+    print(f"Original Individual: {individual_str}")
+    mutated = mutate(individual, OPERATORS, X_PROBABILITY)
+    mutated_tree = mutated.__str__()
+    mutated_str = mutated.to_infix()
+    print(f"Mutated Individual Tree:\n{mutated_tree}")
+    print(f"Mutated Individual: {mutated_str}")
+
+
 
 if __name__ == "__main__":
     main()
