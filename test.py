@@ -9,18 +9,6 @@
 # ~0.3 mutate child 
 # update population 
 
-# test population generation
-# test mutation
-# test crossover
-
-# hyperparameters: 
-# population size
-# mutation rate
-# crossover rate
-# number of generations
-# max depth of tree
-# chance of generating "x"
-
 import pandas as pd
 import numpy as np
 from sklearn.metrics import root_mean_squared_error
@@ -103,9 +91,6 @@ def get_fitness(individual, x_values, y_true):
 
 def get_error(): 
     return 0
-
-def crossover_individuals(parent1, parent2):
-    return parent1.crossover(parent2)
 
 
 def get_fitness(individual, x, y):
