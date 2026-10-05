@@ -37,35 +37,42 @@ def generate_initial_population():
 def symbolic_regression(train_df, initial_population):
     x_values = train_df['x'].tolist()
     y_true = train_df['f(x)'].tolist()
+    population = []
+    fitnesses = []
     # initialize fitness for initial population
     for individual in initial_population:
         individual.fitness = get_fitness(individual, x_values, y_true)
+        fitnesses.append(individual.fitness)
 
     population = initial_population
     for generation in range(GENERATIONS):
         new_population = []
+        new_fitnesses = []
         for _ in range(INITIAL_POPULATION_SIZE):
             p = np.random.random()
             if p < CROSSOVER_RATE:
                 # select two parents 
                 # (implement logic to prioritize higher fitness)
-                parent1 = np.random.choice(population)
-                parent2 = np.random.choice(population)
+                parent1 = np.random.choices(population, weights=fitnesses, k=1)[0]
+                parent2 = np.random.choices(population, weights=fitnesses, k=1)[0]
+
                 # perform crossover
                 child = crossover(parent1.copy(), parent2.copy(), OPERATORS, X_PROBABILITY, CROSS_OVER_MAX_DEPTH)
             elif p < CROSSOVER_RATE + CLONE_RATE:
                 # select one parent
-                parent = np.random.choice(population)
+                parent = np.random.choices(population, weights=fitnesses, k=1)[0]
                 # clone the parent
                 child = parent.copy()
             else:
                 # select one parent
-                parent = np.random.choice(population)
+                parent = np.random.choices(population, weights=fitnesses, k=1)[0]
                 # perform mutation
                 child = mutate(parent.copy(), OPERATORS, X_PROBABILITY)
             child.fitness = get_fitness(child, x_values, y_true)
             new_population.append(child)
+            new_fitnesses.append(child.fitness)
         population = new_population
+        fitnesses = new_fitnesses
     return # function
 
 def get_fitness(individual, x_values, y_true):
