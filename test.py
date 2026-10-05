@@ -92,12 +92,11 @@ def get_fitness(individual, x_values, y_true):
 def get_error(): 
     return 0
 
-
-def get_fitness(individual, x, y):
-    predictions = np.array([individual.evaluate(xi) for xi in x])
-    mse = np.mean((predictions - y) ** 2)
-    return mse
-
+def get_fitness(individual, x_values, y_true):
+    y_pred = []
+    for x in x_values:
+        y_pred.append(individual.evaluate(x))
+    return r2_score(y_true, y_pred)
 
 def main():
     df = pd.read_csv('data/dataset1.csv')
