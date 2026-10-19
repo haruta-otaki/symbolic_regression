@@ -14,17 +14,17 @@ import numpy as np
 from sklearn.metrics import root_mean_squared_error
 from Tree import Node, generate_random_tree, mutate, crossover
 
-INITIAL_POPULATION_SIZE = 100 #500
-MAX_DEPTH = 5 # 2^(5-1)= 16 leaves
+INITIAL_POPULATION_SIZE = 500
+MAX_DEPTH = 6
 OPERATORS = ["+", "-", "*", "/"]
-GENERATIONS = 5 #50
+GENERATIONS = 50
 CROSSOVER_RATE = 0.7
 CLONE_RATE = 0.1
 MUTATION_RATE = 0.2
-CROSS_OVER_MAX_DEPTH = 8
+CROSS_OVER_MAX_DEPTH = 15
 
 X_PROBABILITY = 0.5
-LEAF_PROBABILITY = 0.2
+LEAF_PROBABILITY = 0.3
 
 # generate 
 def generate_initial_population():
@@ -87,7 +87,7 @@ def get_fitness(individual, x_values, y_true):
     y_pred = []
     for x in x_values:
         y_pred.append(individual.evaluate(x))
-    return root_mean_squared_error(y_true, y_pred)
+    return 1/ (1 + root_mean_squared_error(y_true, y_pred))
 
 
 def main():
