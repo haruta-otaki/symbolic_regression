@@ -197,3 +197,22 @@ def crossover(parent1, parent2):
 
     child.fitness = 0
     return child
+
+if __name__ == "__main__":
+    operators = ["+", "-", "*", "/"]
+
+    parent1 = generate_random_tree(operators)
+    parent2 = generate_random_tree(operators)
+
+    print("Parent 1:", parent1.to_infix())
+    print("Parent 2:", parent2.to_infix())
+
+    child = crossover(parent1, parent2)
+    print("Crossover:", child.to_infix())
+
+    mutated = mutate(child, operators)
+    print("Mutation:", mutated.to_infix())
+
+    print("Depth:", mutated.depth())
+    print("Size:", mutated.size())
+    print("Evaluation:", mutated.evaluate(2))
