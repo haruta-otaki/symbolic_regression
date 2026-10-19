@@ -64,7 +64,7 @@ def symbolic_regression(train_df, initial_population):
                 parent2 = rng.choice(population, p=weights)
 
                 # perform crossover
-                child = crossover(parent1.copy(), parent2.copy(), CROSS_OVER_MAX_DEPTH)
+                child = crossover(parent1, parent2)
             elif p < CROSSOVER_RATE + CLONE_RATE:
                 # select one parent
                 parent = rng.choice(population, p=weights)
