@@ -96,7 +96,8 @@ def get_fitness(individual, x_values, y_true):
     y_pred = []
     for x in x_values:
         y_pred.append(individual.evaluate(x))
-    return r2_score(y_true, y_pred)
+    return root_mean_squared_error(y_true, y_pred)
+
 
 def main():
     df = pd.read_csv('data/dataset1.csv')

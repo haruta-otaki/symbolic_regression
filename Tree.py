@@ -1,6 +1,7 @@
 import csv
 import random
 import math
+
 class Node:
     def __init__(self, value=None, left=None, right=None):
         self.value = value
@@ -9,7 +10,7 @@ class Node:
         self.fitness = 0
 
     def is_terminal(self):
-            return self.left is None and self.right is None
+        return self.left is None and self.right is None
 
     def evaluate(self, x):
         if self.value == "x":
