@@ -149,7 +149,7 @@ def generate_random_tree(operators, depth=5, p_terminal=0.2, p_x=0.5):
     if depth <= 1 or random.random() < p_terminal:
         if random.random() < p_x:
             return Node("x")
-        return Node(str(round(random.uniform(-10, 10), 2)))
+        return Node(str(random.randint(-10, 10)))
     return Node(random.choice(operators),
                 generate_random_tree(operators, depth - 1, p_terminal, p_x),
                 generate_random_tree(operators, depth - 1, p_terminal, p_x))
