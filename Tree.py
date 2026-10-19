@@ -13,10 +13,10 @@ class Node:
         return self.left is None and self.right is None
 
     def evaluate(self, x):
-        if self.value == "x":
-            return x
         
         if self.is_terminal():
+            if self.value == "x":
+                return x
             return float(self.value)
         
         left_value = self.left.evaluate(x)
@@ -36,6 +36,11 @@ class Node:
                 return left_value / right_value
         else:
             raise ValueError(f"Unknown operator: {self.value}")
+
+        if not math.isfinite(result):
+            raise ValueError("Non-finite result")
+
+        return result
 
 #find depth
     def depth(self):
@@ -103,6 +108,41 @@ class Node:
             return str(self.value)
         return f"({self.left.to_infix()} {self.value} {self.right.to_infix()})"
 
+# Convert tree to mathematical expression
+
+    def to_infix(self):
+        if self.is_terminal():
+            return str(self.value)
+
+        return (
+            f"({self.left.to_infix()} "
+            f"{self.value} "
+            f"{self.right.to_infix()})"
+        )
+
+# Get all nodes in a tree
+    def get_all_nodes(node, nodes):
+        nodes.append(node)
+        
+        if not node.is_terminal():
+            get_all_nodes(node.left, nodes)
+            get_all_nodes(node.right, nodes)
+
+        return nodes
+
+
+# Get all non-terminal nodes
+    def get_all_inner_nodes(node, nodes):
+        if node.is_terminal():
+            return nodes
+
+        nodes.append(node)
+
+        get_all_inner_nodes(node.left, nodes)
+        get_all_inner_nodes(node.right, nodes)
+
+        return nodes
+
 
 def generate_random_tree(operators, depth=5, p_terminal=0.2, p_x=0.5):
     if depth <= 1 or random.random() < p_terminal:
@@ -114,10 +154,15 @@ def generate_random_tree(operators, depth=5, p_terminal=0.2, p_x=0.5):
                 generate_random_tree(operators, depth - 1, p_terminal, p_x))
 
 def mutate(node, operators, p_x=0.5):
+
+    #work on copy so original parent remains unchanged
+    child = node.copy()
+    
     # choose a random node to mutate
-    nodes = get_all_nodes(node, [])
+    nodes = get_all_nodes(child, [])
     mutate_node = random.choice(nodes)
     print(f"Mutating node with value: {mutate_node.value}")
+    
     if mutate_node.is_terminal():
         # change the terminal value
         if random.random() < p_x:
@@ -130,21 +175,6 @@ def mutate(node, operators, p_x=0.5):
     print(f"Mutated node value: {mutate_node.value}")
     return node
         
-def get_all_nodes(node, nodes):
-    nodes.append(node)
-    if not node.is_terminal():
-        get_all_nodes(node.left, nodes)
-        get_all_nodes(node.right, nodes)
-    return nodes
-
-def get_all_inner_nodes(node, nodes):
-    if node.is_terminal():
-        return nodes
-    else:
-        nodes.append(node)
-        get_all_inner_nodes(node.left, nodes)
-        get_all_inner_nodes(node.right, nodes)
-    return nodes
 
 def crossover(parent1, parent2, max_depth=8):
     # choose a random nodes to cross over
