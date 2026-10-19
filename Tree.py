@@ -1,6 +1,7 @@
 import csv
 import random
 import math
+
 class Node:
     def __init__(self, value=None, left=None, right=None):
         self.value = value
@@ -9,7 +10,7 @@ class Node:
         self.fitness = 0
 
     def is_terminal(self):
-            return self.left is None and self.right is None
+        return self.left is None and self.right is None
 
     def evaluate(self, x):
         if self.value == "x":
@@ -116,7 +117,7 @@ def mutate(node, operators, p_x=0.5):
     # choose a random node to mutate
     nodes = get_all_nodes(node, [])
     mutate_node = random.choice(nodes)
-    print(f"Mutating node with value: {mutate_node.value}")
+    # print(f"Mutating node with value: {mutate_node.value}")
     if mutate_node.is_terminal():
         # change the terminal value
         if random.random() < p_x:
@@ -126,7 +127,7 @@ def mutate(node, operators, p_x=0.5):
     else:
         # change the operator
         mutate_node.value = random.choice(operators)
-    print(f"Mutated node value: {mutate_node.value}")
+    # print(f"Mutated node value: {mutate_node.value}")
     return node
         
 def get_all_nodes(node, nodes):
