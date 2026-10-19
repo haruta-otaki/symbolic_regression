@@ -161,50 +161,38 @@ def mutate(node, operators, p_x=0.5):
     # choose a random node to mutate
     nodes = get_all_nodes(child, [])
     mutate_node = random.choice(nodes)
-    print(f"Mutating node with value: {mutate_node.value}")
+    
     
     if mutate_node.is_terminal():
         # change the terminal value
         if random.random() < p_x:
             mutate_node.value = "x"
         else:
-            mutate_node.value = str(round(random.uniform(-10, 10), 2)) 
+            mutate_node.value = str(random.randint(-10, 10)) 
     else:
         # change the operator
         mutate_node.value = random.choice(operators)
-    print(f"Mutated node value: {mutate_node.value}")
+
+    child.fitness = 0
     return node
         
 
-def crossover(parent1, parent2, max_depth=8):
+def crossover(parent1, parent2):
+
+    #copy parents
+    child = parent1.copy()
+    donor = parent2.copy()
+    
     # choose a random nodes to cross over
-    nodes_1 = get_all_inner_nodes(parent1, [])
-    nodes_2 = get_all_inner_nodes(parent2, []) 
+    donor = get_all_nodes(donor, [])
+    donor_subtree = random.choice(donor_nodes).copy()
 
-    if (nodes_1 == []):
-        return parent2
-    elif (nodes_2 == []):
-        return parent1
-    else:
-        swap_parent_1 = random.choice(nodes_1)
-        swap_parent_2 = random.choice(nodes_2)
-        if (swap_parent_2.left == None):
-            subtree = swap_parent_2.right
-        elif (swap_parent_2.right == None): 
-            subtree = swap_parent_2.left
-        else:
-            subtree = random.choice([swap_parent_2.left, swap_parent_2.right])
-        
-        if (swap_parent_1.left == None): 
-            swap_parent_1.right = subtree
-        elif (swap_parent_1.right == None):
-            swap_parent_1.left = subtree
-        else:
-            if random.random() < 0.5:
-                swap_parent_1.left = subtree
-            else:
-                swap_parent_1.right = subtree
+    child_nodes = get_all_nodes(child, [])
+    target = random.choice(child_nodes)
+    
+    target.value = donor_subtree.value
+    target.left = donor_subtree.left
+    target.right = donor_subtree.right
 
-        if parent1.depth() > max_depth:
-            return parent2
-        return parent1
+    child.fitness = 0
+    return child
