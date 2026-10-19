@@ -2,15 +2,12 @@ import csv
 import random
 import math
 
-
 class Node:
     def __init__(self, value=None, left=None, right=None):
         self.value = value
         self.left = left
         self.right = right
         self.fitness = 0
-
-  #only one
 
     def is_terminal(self):
         return self.left is None and self.right is None
