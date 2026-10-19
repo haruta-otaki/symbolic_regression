@@ -113,9 +113,9 @@ def main():
     y_true_values = test_df['f(x)'].tolist()
     population = []
     fitnesses = []
-    most_fit_tree.fitness = get_fitness(most_fit_tree, x_true_values, y_true_values)
+    most_fit.fitness = get_fitness(most_fit, x_true_values, y_true_values)
 
-    print(f"Error: {most_fit_tree.fitness}")
+    print(f"Error: {most_fit.fitness}")
     
 
     # individual_1 = generate_random_tree(OPERATORS, MAX_DEPTH, LEAF_PROBABILITY, X_PROBABILITY)
