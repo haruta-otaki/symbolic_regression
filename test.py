@@ -1,4 +1,5 @@
 import pandas as pd
+import math
 import numpy as np
 from sklearn.metrics import root_mean_squared_error
 from Tree import Node, generate_random_tree, mutate, crossover
@@ -36,14 +37,18 @@ def symbolic_regression(train_df, initial_population):
 
     print("start genetic algorithm")
     population = initial_population
-    generation_count = 0
-    while generation_count < GENERATIONS and ((1 - max(fitnesses)) > 1e-6): 
-        print(f"Generation {generation_count} started")
-        new_population = []
-        new_fitnesses = []
-        for _ in range(INITIAL_POPULATION_SIZE):
+    for generation in range(GENERATIONS):
+        print(f"Generation {generation} started")
+
+        best_index = np.argmax(fitnesses)
+        best_individual = population[best_index].copy()
+
+        new_population = [best_individual]
+        new_fitnesses = [best_individual.fitness]
+        
+        for _ in range(INITIAL_POPULATION_SIZE - 1):
             # normalize weights so they sum to 1.0
-            weights = fitnesses / np.sum(fitnesses)
+            weights = np.array(fitnesses) / np.sum(fitnesses)
             p = np.random.random()
             if p < CROSSOVER_RATE:
                 # select two parents 
@@ -53,7 +58,7 @@ def symbolic_regression(train_df, initial_population):
                 parent2 = rng.choice(population, p=weights)
 
                 # perform crossover
-                child = crossover(parent1.copy(), parent2.copy())
+                child = crossover(parent1, parent2)
             elif p < CROSSOVER_RATE + CLONE_RATE:
                 # select one parent
                 parent = rng.choice(population, p=weights)
@@ -69,16 +74,38 @@ def symbolic_regression(train_df, initial_population):
             new_fitnesses.append(child.fitness)
         population = new_population
         fitnesses = new_fitnesses
-        generation_count += 1
 
-    max_fitness_index = np.argmax(fitnesses)
+        best_fitness = max(fitnesses)
+        print(f"Generation {generation}: Best Fitness = {best_fitness:.6f}")
+        
+    max_fitness_index = np.argmax(fitnesses) 
     return population[max_fitness_index]
 
 def get_fitness(individual, x_values, y_true):
     y_pred = []
-    for x in x_values:
-        y_pred.append(individual.evaluate(x))
-    return 1/ (1 + root_mean_squared_error(y_true, y_pred))
+
+    try:
+
+        for x in x_values:
+            prediction = individual.evaluate(x)
+
+            #for infinity or non-number
+            if not math.isfinite(prediction):
+                return 0
+
+            y_pred.append(prediction)
+        
+        error = root_mean_squared_error(y_true, y_pred)
+
+        #for infinity or non-number
+        if not math.isfinite(error):
+            return 0
+        
+        complexity_penalty = 0.001 * individual.size()
+        return 1 / (1 + error + complexity_penalty)
+        
+    except (ValueError, OverflowError, ZeroDivisionError):
+        return 0
 
 def test(individual, x_values, y_true):
     y_pred = []
@@ -107,9 +134,11 @@ def main():
     # testing: 
     x_true_values = test_df['x'].tolist()
     y_true_values = test_df['f(x)'].tolist()
-    rmse = test(most_fit, x_true_values, y_true_values)
-    print(f"fitness: {most_fit.fitness}")
-    print(f"RMSE: {rmse}")
+    test_fitness = get_fitness(most_fit, x_true_values, y_true_values)
+    error = test(most_fit, x_true_values, y_true_values)
+
+    print(f"Test Fitness: {test_fitness}")
+    print(f"Error: {error}")
     
 if __name__ == "__main__":
     main()
