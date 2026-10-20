@@ -17,7 +17,7 @@ class Node:
             return x
         
         if self.is_terminal():
-            return float(self.value)
+            return int(self.value)
         
         left_value = self.left.evaluate(x)
         right_value = self.right.evaluate(x)
@@ -108,7 +108,8 @@ def generate_random_tree(operators, depth=5, p_terminal=0.2, p_x=0.5):
     if depth <= 1 or random.random() < p_terminal:
         if random.random() < p_x:
             return Node("x")
-        return Node(str(round(random.uniform(-10, 10), 2)))
+        return Node(str(random.randint(-10, 10)))
+    # Node(str(round(random.uniform(-10, 10), 2)))
     return Node(random.choice(operators),
                 generate_random_tree(operators, depth - 1, p_terminal, p_x),
                 generate_random_tree(operators, depth - 1, p_terminal, p_x))
@@ -123,7 +124,8 @@ def mutate(node, operators, p_x=0.5):
         if random.random() < p_x:
             mutate_node.value = "x"
         else:
-            mutate_node.value = str(round(random.uniform(-10, 10), 2)) 
+            mutate_node.value = str(random.randint(-10, 10))
+            # str(round(random.uniform(-10, 10), 2)) 
     else:
         # change the operator
         mutate_node.value = random.choice(operators)
@@ -146,7 +148,7 @@ def get_all_inner_nodes(node, nodes):
         get_all_inner_nodes(node.right, nodes)
     return nodes
 
-def crossover(parent1, parent2, max_depth=8):
+def crossover(parent1, parent2):
     # choose a random nodes to cross over
     nodes_1 = get_all_inner_nodes(parent1, [])
     nodes_2 = get_all_inner_nodes(parent2, []) 
@@ -175,6 +177,4 @@ def crossover(parent1, parent2, max_depth=8):
             else:
                 swap_parent_1.right = subtree
 
-        if parent1.depth() > max_depth:
-            return parent2
         return parent1

@@ -1,14 +1,3 @@
-# complicated idea: multiple population 
-
-# create random population {x, range of constants}
-
-# cross over & mutation as per videos 
-# 
-# cross ovver
-# random 0 - 1 
-# ~0.3 mutate child 
-# update population 
-
 import pandas as pd
 import numpy as np
 from sklearn.metrics import root_mean_squared_error
@@ -16,12 +5,11 @@ from Tree import Node, generate_random_tree, mutate, crossover
 
 INITIAL_POPULATION_SIZE = 500
 MAX_DEPTH = 6
-OPERATORS = ["+", "-", "*", "/"]
+OPERATORS = ["+", "-", "*", "/"] 
 GENERATIONS = 50
 CROSSOVER_RATE = 0.7
 CLONE_RATE = 0.1
 MUTATION_RATE = 0.2
-CROSS_OVER_MAX_DEPTH = 15
 
 X_PROBABILITY = 0.5
 LEAF_PROBABILITY = 0.3
@@ -48,8 +36,9 @@ def symbolic_regression(train_df, initial_population):
 
     print("start genetic algorithm")
     population = initial_population
-    for generation in range(GENERATIONS):
-        print(f"Generation {generation} started")
+    generation_count = 0
+    while generation_count < GENERATIONS and ((1 - max(fitnesses)) > 1e-6): 
+        print(f"Generation {generation_count} started")
         new_population = []
         new_fitnesses = []
         for _ in range(INITIAL_POPULATION_SIZE):
@@ -64,7 +53,7 @@ def symbolic_regression(train_df, initial_population):
                 parent2 = rng.choice(population, p=weights)
 
                 # perform crossover
-                child = crossover(parent1.copy(), parent2.copy(), CROSS_OVER_MAX_DEPTH)
+                child = crossover(parent1.copy(), parent2.copy())
             elif p < CROSSOVER_RATE + CLONE_RATE:
                 # select one parent
                 parent = rng.choice(population, p=weights)
@@ -80,7 +69,9 @@ def symbolic_regression(train_df, initial_population):
             new_fitnesses.append(child.fitness)
         population = new_population
         fitnesses = new_fitnesses
-    max_fitness_index = np.argmax(fitnesses) 
+        generation_count += 1
+
+    max_fitness_index = np.argmax(fitnesses)
     return population[max_fitness_index]
 
 def get_fitness(individual, x_values, y_true):
@@ -89,6 +80,11 @@ def get_fitness(individual, x_values, y_true):
         y_pred.append(individual.evaluate(x))
     return 1/ (1 + root_mean_squared_error(y_true, y_pred))
 
+def test(individual, x_values, y_true):
+    y_pred = []
+    for x in x_values:
+        y_pred.append(individual.evaluate(x))
+    return root_mean_squared_error(y_true, y_pred)
 
 def main():
     df = pd.read_csv('data/dataset1.csv')
@@ -111,35 +107,9 @@ def main():
     # testing: 
     x_true_values = test_df['x'].tolist()
     y_true_values = test_df['f(x)'].tolist()
-    population = []
-    fitnesses = []
-    most_fit.fitness = get_fitness(most_fit, x_true_values, y_true_values)
-
-    print(f"Error: {most_fit.fitness}")
+    rmse = test(most_fit, x_true_values, y_true_values)
+    print(f"fitness: {most_fit.fitness}")
+    print(f"RMSE: {rmse}")
     
-
-    # individual_1 = generate_random_tree(OPERATORS, MAX_DEPTH, LEAF_PROBABILITY, X_PROBABILITY)
-    # individual_1_tree = individual_1.__str__()
-    # individual_1_str = individual_1.to_infix()
-    # print(f"Original Individual Tree:\n{individual_1_tree}")
-    # print(f"Original Individual: {individual_1_str}")
-    # individual_2 = generate_random_tree(OPERATORS, MAX_DEPTH, LEAF_PROBABILITY, X_PROBABILITY)
-    # individual_2_tree = individual_2.__str__()
-    # individual_2_str = individual_2.to_infix()
-    # print(f"Original Individual Tree:\n{individual_2_tree}")
-    # print(f"Original Individual: {individual_2_str}")
-    # # mutated = mutate(individual, OPERATORS, X_PROBABILITY)
-    # # mutated_tree = mutated.__str__()
-    # # mutated_str = mutated.to_infix()
-    # # print(f"Mutated Individual Tree:\n{mutated_tree}")
-    # # print(f"Mutated Individual: {mutated_str}")
-    # crossover_node = crossover(individual_1, individual_2, CROSS_OVER_MAX_DEPTH)
-    # crossover_tree = crossover_node.__str__()
-    # crossover_str = crossover_node.to_infix()
-    # print(f"Crossover Individual Tree:\n{crossover_tree}")
-    # print(f"Crossover Individual: {crossover_str}")
-    
-
-
 if __name__ == "__main__":
     main()
