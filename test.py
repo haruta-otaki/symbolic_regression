@@ -18,18 +18,31 @@ X_PROBABILITY = 0.5
 LEAF_PROBABILITY = 0.4
 TOURNAMENT_SIZE = 5
 
+DATASET = 2
+
+if DATASET == 1:
+    VARIABLES = ["x"]
+    REAL_CONSTANTS = False
+else:
+    VARIABLES = ["x1", "x2", "x3"]
+    REAL_CONSTANTS = True
+
 # generate 
 def generate_initial_population():
     initial_population = []
     for _ in range(INITIAL_POPULATION_SIZE):
-        individual = generate_random_tree(OPERATORS, MAX_DEPTH, LEAF_PROBABILITY, X_PROBABILITY)
+        individual = generate_random_tree(OPERATORS, MAX_DEPTH, LEAF_PROBABILITY, X_PROBABILITY, VARIABLES, REAL_CONSTANTS)
         initial_population.append(individual)
     return initial_population
 
 def symbolic_regression(train_df, initial_population):
     rng = np.random.default_rng()
-    x_values = train_df['x'].tolist()
-    y_true = train_df['f(x)'].tolist()
+    if DATASET == 1:
+        x_values = train_df["x"].tolist()
+        y_true = train_df["f(x)"].tolist()
+    else:
+        x_values = train_df[["x1", "x2", "x3"]].to_dict("records")
+        y_true = train_df["f(x1,x2,x3)"].tolist()
     population = []
     fitnesses = []
     errors = []
@@ -140,7 +153,15 @@ def test(individual, x_values, y_true):
     return r2_score(y_true, y_pred)
 
 def main():
-    df = pd.read_csv('data/dataset1.csv')
+
+    if DATASET == 2:
+        df = pd.read_csv("data/dataset2.csv", skiprows=1, names=["x1", "x2", "x3", "f(x1,x2,x3)"])
+    else:
+        df = pd.read_csv("data/dataset1.csv")
+
+    print("Dataset:", DATASET)
+    print("Actual columns:", [repr(col) for col in df.columns])
+    print(df.head())
 
     # select 80% of the data randomly for training
     train_df = df.sample(frac=0.8, random_state=42)

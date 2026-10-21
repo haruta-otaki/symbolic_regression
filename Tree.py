@@ -18,7 +18,11 @@ class Node:
         
         if self.is_terminal():
             if self.value == "x":
-                return x
+                return x if not isinstance(x, dict) else x["x"]
+                
+            if self.value in ("x1", "x2", "x3"):
+                return x[self.value]
+                
             return float(self.value)
         
         left_value = self.left.evaluate(x)
@@ -147,16 +151,27 @@ def get_all_inner_nodes(node, nodes):
     return nodes
 
 
-def generate_random_tree(operators, depth=5, p_terminal=0.2, p_x=0.5):
+def generate_random_tree(operators, depth=5, p_terminal=0.2, p_x=0.5, variables=None, real_constants=False):
+
+    if variables is None:
+         variables = ["x"]
+        
     if depth <= 1 or random.random() < p_terminal:
         if random.random() < p_x:
-            return Node("x")
+            return Node(random.choice(variables))
+        if real_constants:
+            return Node(str(round(random.uniform(-10, 10), 2)))
         return Node(str(random.randint(-10, 10)))
-    return Node(random.choice(operators),
-                generate_random_tree(operators, depth - 1, p_terminal, p_x),
-                generate_random_tree(operators, depth - 1, p_terminal, p_x))
 
-def mutate(node, operators, p_x=0.5):
+    return Node(
+        random.choice(operators),
+        generate_random_tree(operators, depth - 1, p_terminal, p_x, variables, real_constants),
+        generate_random_tree(operators, depth - 1, p_terminal, p_x, variables, real_constants))
+
+def mutate(node, operators, p_x=0.5, variables=None, real_constants=False):
+
+    if variables is None:
+        variables = ["x"]
 
     #work on copy so original parent remains unchanged
     child = node.copy()
@@ -169,9 +184,13 @@ def mutate(node, operators, p_x=0.5):
     if mutate_node.is_terminal():
         # change the terminal value
         if random.random() < p_x:
-            mutate_node.value = "x"
+            mutate_node.value = random.choice(variables)
         else:
-            mutate_node.value = str(random.randint(-10, 10)) 
+            if real_constants:
+                mutate_node.value = str(round(random.uniform(-10, 10), 2))
+            else:
+                mutate_node.value = str(random.randint(-10, 10))
+            
     else:
         # change the operator
         mutate_node.value = random.choice(operators)
