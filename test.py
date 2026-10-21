@@ -34,6 +34,9 @@ def generate_initial_population():
         initial_population.append(individual)
     return initial_population
 
+def tree_signature(individual):
+    return individual.to_infix()
+
 def symbolic_regression(train_df, initial_population):
     rng = np.random.default_rng()
     if DATASET == 1:
@@ -62,42 +65,46 @@ def symbolic_regression(train_df, initial_population):
         new_population = []
         new_fitnesses = []
         new_errors = []
+        seen_trees = set()
 
         elitist_indices = np.argpartition(fitnesses, (-1 * elitist_population))[(-1 * elitist_population):]
         
         for i in elitist_indices: 
             individual = population[i]
-            new_population.append(individual)
-            new_fitnesses.append(individual.fitness)
-            new_errors.append(individual.error)
+            signature = tree_signature(individual)
+            if signature not in seen_trees:
+                seen_trees.add(signature)
+                new_population.append(individual)
+                new_fitnesses.append(individual.fitness)
+                new_errors.append(individual.error)
 
         # normalize weights so they sum to 1.0
         weights = np.array(fitnesses) / np.sum(fitnesses)
 
-        for _ in range(INITIAL_POPULATION_SIZE - elitist_population):
-            
+        attempts = 0
+        while len(new_population) < INITIAL_POPULATION_SIZE:
             p = np.random.random()
             if p < CROSSOVER_RATE:
-                # select two parents 
-                # (implement logic to prioritize higher fitness)
-                # optimization - choose index rather than node
-                # tournament selection
-
                 parent1 = tournament_selection(population, fitnesses, rng)
                 parent2 = tournament_selection(population, fitnesses, rng)
-
-                # perform crossover
                 child = crossover(parent1, parent2)
             elif p < CROSSOVER_RATE + CLONE_RATE:
-                # select one parent
                 parent = tournament_selection(population, fitnesses, rng)
-                # clone the parent
                 child = parent.copy()
             else:
-                # select one parent
                 parent = tournament_selection(population, fitnesses, rng)
-                # perform mutation
-                child = mutate(parent, OPERATORS, X_PROBABILITY, VARIABLES, REAL_CONSTANTS)
+                child = mutate(parent, OPERATORS, X_PROBABILITY,VARIABLES, REAL_CONSTANTS)
+            signature = tree_signature(child)
+            if signature in seen_trees:
+                attempts += 1
+                if attempts >= 20:
+                    child = generate_random_tree(OPERATORS, MAX_DEPTH, LEAF_PROBABILITY, X_PROBABILITY, VARIABLES, REAL_CONSTANTS)
+                    signature = tree_signature(child)
+                    attempts = 0
+                if signature in seen_trees:
+                    continue
+            seen_trees.add(signature)
+            attempts = 0
             evaluation = get_evaluation(child, x_values, y_true)
             child.fitness = evaluation[1]
             child.error = evaluation[0]
