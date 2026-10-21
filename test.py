@@ -7,7 +7,7 @@ from Tree import Node, generate_random_tree, mutate, crossover
 INITIAL_POPULATION_SIZE = 500
 MAX_DEPTH = 4
 OPERATORS = ["+", "-", "*", "/"] 
-GENERATIONS = 50
+GENERATIONS = 100
 CROSSOVER_RATE = 0.6
 CLONE_RATE = 0.1
 MUTATION_RATE = 0.3
