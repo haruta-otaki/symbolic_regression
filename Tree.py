@@ -161,7 +161,8 @@ def generate_random_tree(operators, depth=5, p_terminal=0.2, p_x=0.5, variables=
         if random.random() < p_x:
             return Node(random.choice(variables))
         if real_constants:
-            return Node(str(round(random.uniform(-10, 10), 2)))
+            constant = random.uniform(-10, 10) * (10 ** random.randint(-12, 0))
+            return Node(str(constant))
         return Node(str(random.randint(-10, 10)))
 
     return Node(
@@ -188,7 +189,8 @@ def mutate(node, operators, p_x=0.5, variables=None, real_constants=False):
             mutate_node.value = random.choice(variables)
         else:
             if real_constants:
-                mutate_node.value = str(round(random.uniform(-10, 10), 2))
+                constant = random.uniform(-10, 10) * (10 ** random.randint(-12, 0))
+                mutate_node.value = str(constant)
             else:
                 mutate_node.value = str(random.randint(-10, 10))
             
