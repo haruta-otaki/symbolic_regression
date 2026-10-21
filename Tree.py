@@ -26,13 +26,8 @@ class Node:
         if self.value == "-": return l - r
         if self.value == "*": return l * r
         if self.value == "/":
-            # safe to divide
-            safe = np.abs(r) > 1e-6
-            # fallback
-            result = np.ones_like(l)
-            # calculate for safe rows only
-            result[safe] = l[safe] / r[safe]
-            return result
+            denominator = np.where(np.abs(r) < 1e-12, np.where(r < 0, -1e-12, 1e-12), r)
+            return l / denominator
         raise ValueError(f"Unknown operator: {self.value}")
 
 #find depth
