@@ -179,7 +179,7 @@ def main():
     if DATASET == 1:
         x_true_values, y_true_values = to_arrays(test_df, ["x"], "f(x)")
     else:
-        x__true_values, y_true_values = to_arrays(test_df, ["x1", "x2", "x3"], "f(x1,x2,x3)")
+        x_true_values, y_true_values = to_arrays(test_df, ["x1", "x2", "x3"], "f(x1,x2,x3)")
 
         
     error, fitness = get_evaluation(most_fit, x_true_values, y_true_values)
