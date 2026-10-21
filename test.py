@@ -135,6 +135,10 @@ def get_fitness(individual, x_values, y_true):
 def main():
     df = pd.read_csv(f"data/dataset{DATASET}.csv")
 
+    print("Dataset:", DATASET)
+    print("Actual columns:", [repr(col) for col in df.columns])
+    print(df.head())
+
     # select 80% of the data randomly for training
     train_df = df.sample(frac=0.8, random_state=42)
 
