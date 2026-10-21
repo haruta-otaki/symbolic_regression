@@ -71,8 +71,7 @@ def symbolic_regression(train_df, initial_population):
             new_fitnesses.append(individual.fitness)
             new_errors.append(individual.error)
 
-        # normalize weights so they sum to 1.0
-        weights = np.array(fitnesses) / np.sum(fitnesses)
+        
 
         for _ in range(INITIAL_POPULATION_SIZE - elitist_population):
             
