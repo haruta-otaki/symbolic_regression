@@ -2,21 +2,20 @@ import random
 import pandas as pd
 import math
 import numpy as np
-import heapq
-from sklearn.metrics import root_mean_squared_error, r2_score
 from Tree import Node, generate_random_tree, mutate, crossover
 
 INITIAL_POPULATION_SIZE = 500
-MAX_DEPTH = 6
+MAX_DEPTH = 5
 OPERATORS = ["+", "-", "*", "/"] 
-GENERATIONS = 10
+GENERATIONS = 50
 CROSSOVER_RATE = 0.7
 CLONE_RATE = 0.1
 MUTATION_RATE = 0.2
 
 X_PROBABILITY = 0.5
 LEAF_PROBABILITY = 0.2
-TOURNAMENT_SIZE = 5
+TOURNAMENT_SIZE = 10
+ELITE_RATIO = 0.01
 
 DATASET = 1
 
@@ -45,7 +44,7 @@ def symbolic_regression(train_df, initial_population):
     population = []
     fitnesses = []
     errors = []
-    elitist_population = int(round(INITIAL_POPULATION_SIZE * 0.01))
+    elitist_population = int(round(INITIAL_POPULATION_SIZE * ELITE_RATIO))
     print("initialize population fitness")
     # initialize fitness for initial population
     for individual in initial_population:
