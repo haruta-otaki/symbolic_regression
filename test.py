@@ -7,7 +7,7 @@ from Tree import Node, generate_random_tree, mutate, crossover
 INITIAL_POPULATION_SIZE = 500
 MAX_DEPTH = 5
 OPERATORS = ["+", "-", "*", "/"] 
-GENERATIONS = 20
+GENERATIONS = 50
 CROSSOVER_RATE = 0.7
 CLONE_RATE = 0.1
 MUTATION_RATE = 0.2
@@ -159,7 +159,6 @@ def get_evaluation(individual, X, y):
         return (error, 1 / (1 + error * (1 + penalty)))
 
 def main():
-
     if DATASET == 2:
         df = pd.read_csv("data/dataset2.csv", skiprows=1, names=["x1", "x2", "x3", "f(x1,x2,x3)"])
     else:
