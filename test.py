@@ -1,19 +1,22 @@
+import random
 import pandas as pd
 import math
 import numpy as np
-from sklearn.metrics import root_mean_squared_error
+import heapq
+from sklearn.metrics import root_mean_squared_error, r2_score
 from Tree import Node, generate_random_tree, mutate, crossover
 
 INITIAL_POPULATION_SIZE = 500
 MAX_DEPTH = 6
 OPERATORS = ["+", "-", "*", "/"] 
-GENERATIONS = 50
+GENERATIONS = 10
 CROSSOVER_RATE = 0.7
 CLONE_RATE = 0.1
 MUTATION_RATE = 0.2
 
 X_PROBABILITY = 0.5
-LEAF_PROBABILITY = 0.3
+LEAF_PROBABILITY = 0.5
+TOURNAMENT_SIZE = 5
 
 # generate 
 def generate_initial_population():
@@ -29,63 +32,85 @@ def symbolic_regression(train_df, initial_population):
     y_true = train_df['f(x)'].tolist()
     population = []
     fitnesses = []
+    errors = []
+    elitist_population = int(round(INITIAL_POPULATION_SIZE * 0.01))
     print("initialize population fitness")
     # initialize fitness for initial population
     for individual in initial_population:
-        individual.fitness = get_fitness(individual, x_values, y_true)
+        individual.fitness = get_evaluation(individual, x_values, y_true)[1]
         fitnesses.append(individual.fitness)
 
     print("start genetic algorithm")
     population = initial_population
-    for generation in range(GENERATIONS):
+    generation = 0
+    current_error = float('inf')
+    while generation < GENERATIONS and current_error > 1e-6:
         print(f"Generation {generation} started")
+        new_population = []
+        new_fitnesses = []
+        new_errors = []
 
-        best_index = np.argmax(fitnesses)
-        best_individual = population[best_index].copy()
-
-        new_population = [best_individual]
-        new_fitnesses = [best_individual.fitness]
+        elitist_indices = np.argpartition(fitnesses, (-1 * elitist_population))[(-1 * elitist_population):]
         
-        for _ in range(INITIAL_POPULATION_SIZE - 1):
-            # normalize weights so they sum to 1.0
-            weights = np.array(fitnesses) / np.sum(fitnesses)
+        for i in elitist_indices: 
+            individual = population[i]
+            new_population.append(individual)
+            new_fitnesses.append(individual.fitness)
+
+        # normalize weights so they sum to 1.0
+        weights = np.array(fitnesses) / np.sum(fitnesses)
+
+        for _ in range(INITIAL_POPULATION_SIZE - elitist_population):
+            
             p = np.random.random()
             if p < CROSSOVER_RATE:
                 # select two parents 
                 # (implement logic to prioritize higher fitness)
+                # optimization - choose index rather than node
+                # tournament selection
 
-                parent1 = rng.choice(population, p=weights)
-                parent2 = rng.choice(population, p=weights)
+                parent1 = tournament_selection(population, fitnesses, rng)
+                parent2 = tournament_selection(population, fitnesses, rng)
 
                 # perform crossover
                 child = crossover(parent1, parent2)
             elif p < CROSSOVER_RATE + CLONE_RATE:
                 # select one parent
-                parent = rng.choice(population, p=weights)
+                parent = tournament_selection(population, fitnesses, rng)
                 # clone the parent
                 child = parent.copy()
             else:
                 # select one parent
-                parent = rng.choice(population, p=weights)
+                parent = tournament_selection(population, fitnesses, rng)
                 # perform mutation
                 child = mutate(parent.copy(), OPERATORS, X_PROBABILITY)
-            child.fitness = get_fitness(child, x_values, y_true)
+            evaluation = get_evaluation(child, x_values, y_true)
+            child.fitness = evaluation[1]
             new_population.append(child)
             new_fitnesses.append(child.fitness)
+            new_errors.append(evaluation[0])
         population = new_population
         fitnesses = new_fitnesses
+        errors = new_errors
 
-        best_fitness = max(fitnesses)
-        print(f"Generation {generation}: Best Fitness = {best_fitness:.6f}")
+        current_error = min(errors)
+        print(f"Generation {generation}: Current Error = {current_error:.6f}")
+        
+        generation += 1
         
     max_fitness_index = np.argmax(fitnesses) 
     return population[max_fitness_index]
 
-def get_fitness(individual, x_values, y_true):
+def tournament_selection(population, fitnesses):
+    indices = random.sample(range(len(population)), TOURNAMENT_SIZE)
+    placeholder = np.array(fitnesses)
+    contestants = placeholder[indices]
+    return population[np.argmax(contestants)]
+
+def get_evaluation(individual, x_values, y_true):
     y_pred = []
 
     try:
-
         for x in x_values:
             prediction = individual.evaluate(x)
 
@@ -94,15 +119,12 @@ def get_fitness(individual, x_values, y_true):
                 return 0
 
             y_pred.append(prediction)
-        
         error = root_mean_squared_error(y_true, y_pred)
-
         #for infinity or non-number
         if not math.isfinite(error):
             return 0
-        
         complexity_penalty = 0.001 * individual.size()
-        return 1 / (1 + error + complexity_penalty)
+        return (error, 1 / (1 + error + complexity_penalty))
         
     except (ValueError, OverflowError, ZeroDivisionError):
         return 0
@@ -111,7 +133,7 @@ def test(individual, x_values, y_true):
     y_pred = []
     for x in x_values:
         y_pred.append(individual.evaluate(x))
-    return root_mean_squared_error(y_true, y_pred)
+    return r2_score(y_true, y_pred)
 
 def main():
     df = pd.read_csv('data/dataset1.csv')
@@ -134,10 +156,8 @@ def main():
     # testing: 
     x_true_values = test_df['x'].tolist()
     y_true_values = test_df['f(x)'].tolist()
-    test_fitness = get_fitness(most_fit, x_true_values, y_true_values)
-    error = test(most_fit, x_true_values, y_true_values)
+    error = get_evaluation(most_fit, x_true_values, y_true_values)[0]
 
-    print(f"Test Fitness: {test_fitness}")
     print(f"Error: {error}")
     
 if __name__ == "__main__":
