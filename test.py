@@ -172,11 +172,11 @@ def main():
     print(f"Original Individual: {most_fit_str}")
     
     # testing: 
-    x_true_values, y_true_values = to_arrays(test_df, ["x"], "f(x)")
+    
     if DATASET == 1:
         x_true_values, y_true_values = to_arrays(test_df, ["x"], "f(x)")
     else:
-        x_values, y_true = to_arrays(train_df, ["x1", "x2", "x3"], "f(x1,x2,x3)")
+        x__truevalues, y_true_values = to_arrays(train_df, ["x1", "x2", "x3"], "f(x1,x2,x3)")
 
         
     error, fitness = get_evaluation(most_fit, x_true_values, y_true_values)
