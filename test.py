@@ -5,7 +5,7 @@ import numpy as np
 from Tree import Node, generate_random_tree, mutate, crossover
 
 INITIAL_POPULATION_SIZE = 500
-MAX_DEPTH = 5
+MAX_DEPTH = 4
 OPERATORS = ["+", "-", "*", "/"] 
 GENERATIONS = 50
 CROSSOVER_RATE = 0.6
@@ -170,10 +170,11 @@ def main():
     initial_population = generate_initial_population()
     print("start symbolic regression")
     most_fit = symbolic_regression(train_df, initial_population)  
-    most_fit_tree = most_fit.__str__()
-    most_fit_str = most_fit.to_infix()
-    print(f"Original Individual Tree:\n{most_fit_tree}")
-    print(f"Original Individual: {most_fit_str}")
+    print("\nBEST DISCOVERED EQUATION:")
+    print(most_fit.to_infix())
+    print("Tree Size:", most_fit.size())
+    print("Tree Depth:", most_fit.depth())
+    print("Training RMSE:", most_fit.error)
     
     # testing: 
     
