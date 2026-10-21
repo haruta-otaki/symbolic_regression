@@ -50,7 +50,7 @@ def symbolic_regression(train_df, initial_population):
         y_true = train_df["f(x)"].tolist()
     else:
         x_values = train_df[["x1", "x2", "x3"]].to_dict("records")
-        y_true = train_df["y"].tolist()
+        y_true = train_df["f(x1,x2,x3)"].tolist()
     population = []
     fitnesses = []
     print("initialize population fitness")
@@ -157,7 +157,7 @@ def main():
         y_true_values = test_df["f(x)"].tolist()
     else:
         x_true_values = test_df[["x1", "x2", "x3"]].to_dict("records")
-        y_true_values = test_df["y"].tolist()
+        y_true_values = test_df["f(x1,x2,x3)"].tolist()
 
     test_fitness = get_fitness(most_fit, x_true_values, y_true_values)
 
