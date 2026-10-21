@@ -108,8 +108,11 @@ def symbolic_regression(train_df, initial_population):
         fitnesses = new_fitnesses
         errors = new_errors
 
+        best_index = np.argmax(fitnesses)
         current_error = min(errors)
         print(f"Generation {generation}: Current Error = {current_error:.6f}")
+        print(f"Best Tree Size: {population[best_index].size()}")
+        print(f"Best Fitness: {fitnesses[best_index]:.12f}")
         
         generation += 1
         
@@ -141,7 +144,7 @@ def get_evaluation(individual, X, y):
     # calculate rmse
     error = np.sqrt(np.mean((y - y_pred) ** 2))
     # complexity penalty
-    penalty = 0.001 * individual.size()
+    penalty = 0.1 * individual.size()
     # return fitness and error
     return (error, 1 / (1 + error + penalty))
 
@@ -176,7 +179,7 @@ def main():
     if DATASET == 1:
         x_true_values, y_true_values = to_arrays(test_df, ["x"], "f(x)")
     else:
-        x__truevalues, y_true_values = to_arrays(train_df, ["x1", "x2", "x3"], "f(x1,x2,x3)")
+        x__true_values, y_true_values = to_arrays(test_df, ["x1", "x2", "x3"], "f(x1,x2,x3)")
 
         
     error, fitness = get_evaluation(most_fit, x_true_values, y_true_values)
