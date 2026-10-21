@@ -15,10 +15,10 @@ CLONE_RATE = 0.1
 MUTATION_RATE = 0.2
 
 X_PROBABILITY = 0.5
-LEAF_PROBABILITY = 0.4
+LEAF_PROBABILITY = 0.2
 TOURNAMENT_SIZE = 5
 
-DATASET = 2
+DATASET = 1
 
 if DATASET == 1:
     VARIABLES = ["x"]
@@ -38,8 +38,7 @@ def generate_initial_population():
 def symbolic_regression(train_df, initial_population):
     rng = np.random.default_rng()
     if DATASET == 1:
-        x_values = train_df["x"].tolist()
-        y_true = train_df["f(x)"].tolist()
+        x_values, y_true = to_arrays(train_df, ["x"], "f(x)")
     else:
         x_values = train_df[["x1", "x2", "x3"]].to_dict("records")
         y_true = train_df["f(x1,x2,x3)"].tolist()
@@ -124,27 +123,29 @@ def tournament_selection(population, fitnesses, rng):
     winner = indices[np.argmax(np.asarray(fitnesses)[indices])]
     return population[winner]
 
-def get_evaluation(individual, x_values, y_true):
-    y_pred = []
+def to_arrays(df, x, y):
+    X = {}
+    for v in x:
+        column = df[v]                         
+        array = column.to_numpy(dtype=float)   
+        X[v] = array                            
 
-    try:
-        for x in x_values:
-            prediction = individual.evaluate(x)
-
-            #for infinity or non-number
-            if not math.isfinite(prediction):
-                return 0
-
-            y_pred.append(prediction)
-        error = root_mean_squared_error(y_true, y_pred)
-        #for infinity or non-number
-        if not math.isfinite(error):
-            return 0
-        complexity_penalty = 0.001 * individual.size()
-        return (error, 1 / (1 + error + complexity_penalty))
-        
-    except (ValueError, OverflowError, ZeroDivisionError):
-        return 0
+    Y = df[y].to_numpy(dtype=float)
+    return X, Y
+    
+def get_evaluation(individual, X, y):
+    # temporarily ignore numpy errors
+    with np.errstate(all="ignore"):
+        y_pred = individual.evaluate(X)
+    # check if all predictions are finite
+    if not np.all(np.isfinite(y_pred)):
+        return (float("inf"), 0.0)
+    # calculate rmse
+    error = np.sqrt(np.mean((y - y_pred) ** 2))
+    # complexity penalty
+    penalty = 0.001 * individual.size()
+    # return fitness and error
+    return (error, 1 / (1 + error + penalty))
 
 def main():
 
@@ -173,8 +174,7 @@ def main():
     print(f"Original Individual: {most_fit_str}")
     
     # testing: 
-    x_true_values = test_df['x'].tolist()
-    y_true_values = test_df['f(x)'].tolist()
+    x_true_values, y_true_values = to_arrays(test_df, ["x"], "f(x)")
     error = get_evaluation(most_fit, x_true_values, y_true_values)[0]
 
     print(f"Error: {error}")

@@ -2,6 +2,7 @@ import csv
 import random
 import math
 import sys
+import numpy as np
 
 class Node:
     def __init__(self, value=None, left=None, right=None):
@@ -14,39 +15,25 @@ class Node:
     def is_terminal(self):
         return self.left is None and self.right is None
 
-    def evaluate(self, x):
-        
+    def evaluate(self, X):
         if self.is_terminal():
-            if self.value == "x":
-                return x if not isinstance(x, dict) else x["x"]
-                
-            if self.value in ("x1", "x2", "x3"):
-                return x[self.value]
-                
-            return float(self.value)
-        
-        left_value = self.left.evaluate(x)
-        right_value = self.right.evaluate(x)
-
-        if self.value == "+":
-            result = left_value + right_value
-        elif self.value == "-":
-            result = left_value - right_value
-        elif self.value == "*":
-            result = left_value * right_value
-        elif self.value == "/":
-            #incase of zero
-            if abs(right_value) < 1e-10:
-                result = left_value
-            else:
-                result = left_value / right_value
-        else:
-            raise ValueError(f"Unknown operator: {self.value}")
-
-        if not math.isfinite(result):
-            raise ValueError("Non-finite result")
-
-        return result
+            if self.value in X:
+                return X[self.value]
+            return np.full(len(next(iter(X.values()))), float(self.value))
+        l = self.left.evaluate(X)
+        r = self.right.evaluate(X)
+        if self.value == "+": return l + r
+        if self.value == "-": return l - r
+        if self.value == "*": return l * r
+        if self.value == "/":
+            # safe to divide
+            safe = np.abs(r) > 1e-6
+            # fallback
+            result = np.ones_like(l)
+            # calculate for safe rows only
+            result[safe] = l[safe] / r[safe]
+            return result
+        raise ValueError(f"Unknown operator: {self.value}")
 
 #find depth
     def depth(self):
