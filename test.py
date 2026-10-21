@@ -146,12 +146,6 @@ def get_evaluation(individual, x_values, y_true):
     except (ValueError, OverflowError, ZeroDivisionError):
         return 0
 
-def test(individual, x_values, y_true):
-    y_pred = []
-    for x in x_values:
-        y_pred.append(individual.evaluate(x))
-    return r2_score(y_true, y_pred)
-
 def main():
 
     if DATASET == 2:
