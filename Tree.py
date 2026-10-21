@@ -170,20 +170,33 @@ def mutate(node, operators, p_x=0.5, variables=None, real_constants=False):
     mutate_node = random.choice(nodes)
     
     
-    if mutate_node.is_terminal():
-        # change the terminal value
-        if random.random() < p_x:
-            mutate_node.value = random.choice(variables)
-        else:
-            if real_constants:
-                constant = random.uniform(-10, 10) * (10 ** random.randint(-12, 0))
+    if random.random() < 0.5: 
+        
+        new_subtree = generate_random_tree(operators, depth=3, p_terminal=0.2, p_x=p_x, variables=variables, real_constants=real_constants)
+
+        mutate_node.value = new_subtree.value
+        mutate_node.left = new_subtree.left
+        mutate_node.right = new_subtree.right
+
+    else:
+
+        
+        if mutate_node.is_terminal():
+
+            if random.random() < p_x:
+                mutate_node.value = random.choice(variables)
+
+            elif real_constants:
+                constant = random.uniform(-10, 10) * (
+                    10 ** random.randint(-12, 0)
+                )
                 mutate_node.value = str(constant)
+
             else:
                 mutate_node.value = str(random.randint(-10, 10))
-            
-    else:
-        # change the operator
-        mutate_node.value = random.choice(operators)
+
+        else:
+            mutate_node.value = random.choice(operators)
 
     child.fitness = 0
     return child
