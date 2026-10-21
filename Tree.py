@@ -26,8 +26,13 @@ class Node:
         if self.value == "-": return l - r
         if self.value == "*": return l * r
         if self.value == "/":
-            denominator = np.where(np.abs(r) < 1e-12, np.where(r < 0, -1e-12, 1e-12), r)
-            return l / denominator
+            # safe to divide
+            safe = np.abs(r) > 1e-6
+            # fallback
+            result = np.ones_like(l)
+            # calculate for safe rows only
+            result[safe] = l[safe] / r[safe]
+            return result
         raise ValueError(f"Unknown operator: {self.value}")
 
 #find depth
@@ -143,7 +148,7 @@ def generate_random_tree(operators, depth=5, p_terminal=0.2, p_x=0.5, variables=
         if random.random() < p_x:
             return Node(random.choice(variables))
         if real_constants:
-            constant = random.choice([-1, 1]) * 10 ** random.uniform(-12, 2)
+            constant = random.uniform(-10, 10) * (10 ** random.randint(-12, 0))
             return Node(str(constant))
         return Node(str(random.randint(-10, 10)))
 
@@ -163,55 +168,24 @@ def mutate(node, operators, p_x=0.5, variables=None, real_constants=False):
     # choose a random node to mutate
     nodes = get_all_nodes(child, [])
     mutate_node = random.choice(nodes)
-
-    p = random.random()
     
     
-    if p < 0.4: 
-        
-        if mutate_node.is_terminal():
-
-            if (real_constants and mutate_node.value not in variables and random.random() < 0.7):
-
-                old_constant = float(mutate_node.value)
-                new_constant = old_constant * (10 ** random.uniform(-0.3, 0.3))
-                mutate_node.value = str(new_constant)
-                
-            elif random.random() < p_x:
-                mutate_node.value = random.choice(variables)
-                
-            elif real_constants:
-                constant = random.choice([-1, 1]) * 10 ** random.uniform(-12, 2)
+    if mutate_node.is_terminal():
+        # change the terminal value
+        if random.random() < p_x:
+            mutate_node.value = random.choice(variables)
+        else:
+            if real_constants:
+                constant = random.uniform(-10, 10) * (10 ** random.randint(-12, 0))
                 mutate_node.value = str(constant)
-                
             else:
                 mutate_node.value = str(random.randint(-10, 10))
-        else:
-            mutate_node.value = random.choice(operators)
-
-
-
-    elif p < 0.8:
-
-        new_subtree = generate_random_tree(operators, depth=3, p_terminal=0.2, p_x=p_x, variables=variables, real_constants=real_constants)
-        mutate_node.value = new_subtree.value
-        mutate_node.left = new_subtree.left
-        mutate_node.right = new_subtree.right
-        
+            
     else:
-        old_subtree = mutate_node.copy()
-        new_terminal = generate_random_tree(operators, depth=1, p_terminal=1.0, p_x=p_x, variables=variables, real_constants=real_constants)
+        # change the operator
         mutate_node.value = random.choice(operators)
-        if random.random() < 0.5:
-            mutate_node.left = old_subtree
-            mutate_node.right = new_terminal
-        else:
-            mutate_node.left = new_terminal
-            mutate_node.right = old_subtree
-
 
     child.fitness = 0
-    child.error = float("inf")
     return child
         
 
@@ -220,25 +194,19 @@ def crossover(parent1, parent2):
     #copy parents
     child = parent1.copy()
     donor = parent2.copy()
-
-    donor_nodes = get_all_nodes(donor, [])
-    child_nodes = get_all_nodes(child, [])
     
-    if random.random() < 0.5:
-        donor_subtree = random.choice(donor_nodes).copy()
-    else:
-        weights = [1 / n.size() for n in donor_nodes]
-        donor_subtree = random.choices(donor_nodes, weights=weights, k=1)[0].copy()
+    # choose a random nodes to cross over
+    donor_nodes = get_all_nodes(donor, [])
+    donor_subtree = random.choice(donor_nodes).copy()
 
-    weights = [1 / n.size() for n in child_nodes]
-    target = random.choices(child_nodes, weights=weights, k=1)[0]
+    child_nodes = get_all_nodes(child, [])
+    target = random.choice(child_nodes)
     
     target.value = donor_subtree.value
     target.left = donor_subtree.left
     target.right = donor_subtree.right
 
     child.fitness = 0
-    child.error = float("inf")
     return child
 
 if __name__ == "__main__":
@@ -258,4 +226,4 @@ if __name__ == "__main__":
 
     print("Depth:", mutated.depth())
     print("Size:", mutated.size())
-    print("Evaluation:", mutated.evaluate({"x": np.array([2.0])}))
+    print("Evaluation:", mutated.evaluate(2))
