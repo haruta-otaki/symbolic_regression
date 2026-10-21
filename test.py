@@ -100,7 +100,7 @@ def symbolic_regression(train_df, initial_population):
                 # select one parent
                 parent = tournament_selection(population, fitnesses, rng)
                 # perform mutation
-                child = mutate(parent.copy(), OPERATORS, X_PROBABILITY)
+                child = mutate(parent, OPERATORS, X_PROBABILITY, VARIABLES, REAL_CONSTANTS)
             evaluation = get_evaluation(child, x_values, y_true)
             child.fitness = evaluation[1]
             child.error = evaluation[0]
@@ -133,18 +133,18 @@ def get_evaluation(individual, x_values, y_true):
 
             #for infinity or non-number
             if not math.isfinite(prediction):
-                return 0
+                return (float("inf"), 0.0)
 
             y_pred.append(prediction)
         error = root_mean_squared_error(y_true, y_pred)
         #for infinity or non-number
         if not math.isfinite(error):
-            return 0
+            return (float("inf"), 0.0)
         complexity_penalty = 0.001 * individual.size()
         return (error, 1 / (1 + error + complexity_penalty))
         
-    except (ValueError, OverflowError, ZeroDivisionError):
-        return 0
+    except (ValueError, OverflowError, ZeroDivisionError, KeyError):
+        return (float("inf"), 0.0)
 
 def main():
 
@@ -173,11 +173,18 @@ def main():
     print(f"Original Individual: {most_fit_str}")
     
     # testing: 
-    x_true_values = test_df['x'].tolist()
-    y_true_values = test_df['f(x)'].tolist()
-    error = get_evaluation(most_fit, x_true_values, y_true_values)[0]
+    if DATASET == 1:
+        x_true_values = test_df["x"].tolist()
+        y_true_values = test_df["f(x)"].tolist()
+    else:
+        x_true_values = test_df[["x1", "x2", "x3"]].to_dict("records")
+        y_true_values = test_df["f(x1,x2,x3)"].tolist()
+        
+    error, fitness = get_evaluation(most_fit, x_true_values, y_true_values)
 
-    print(f"Error: {error}")
+    print(f"Test RMSE: {error}")
+    print(f"Test Fitness: {fitness}")
+
     
 if __name__ == "__main__":
     main()
