@@ -222,7 +222,7 @@ def crossover(parent1, parent2):
     donor = parent2.copy()
 
     donor_nodes = get_all_nodes(donor, [])
-    child_nodes = get_all_nodes(child, []
+    child_nodes = get_all_nodes(child, [])
     
     if random.random() < 0.5:
         donor_subtree = random.choice(donor_nodes).copy()
