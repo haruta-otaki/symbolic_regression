@@ -5,17 +5,17 @@ import numpy as np
 from Tree import Node, generate_random_tree, mutate, crossover
 
 INITIAL_POPULATION_SIZE = 500
-MAX_DEPTH = 4
+MAX_DEPTH = 5
 OPERATORS = ["+", "-", "*", "/"] 
-GENERATIONS = 100
-CROSSOVER_RATE = 0.5
+GENERATIONS = 50
+CROSSOVER_RATE = 0.7
 CLONE_RATE = 0.1
-MUTATION_RATE = 0.4
+MUTATION_RATE = 0.2
 
-X_PROBABILITY = 0.7
-LEAF_PROBABILITY = 0.3
-TOURNAMENT_SIZE = 5
-ELITE_RATIO = 0.02
+X_PROBABILITY = 0.5
+LEAF_PROBABILITY = 0.2
+TOURNAMENT_SIZE = 10
+ELITE_RATIO = 0.01
 
 DATASET = 2
 
@@ -33,9 +33,6 @@ def generate_initial_population():
         individual = generate_random_tree(OPERATORS, MAX_DEPTH, LEAF_PROBABILITY, X_PROBABILITY, VARIABLES, REAL_CONSTANTS)
         initial_population.append(individual)
     return initial_population
-
-def tree_signature(individual):
-    return individual.to_infix()
 
 def symbolic_regression(train_df, initial_population):
     rng = np.random.default_rng()
@@ -65,46 +62,42 @@ def symbolic_regression(train_df, initial_population):
         new_population = []
         new_fitnesses = []
         new_errors = []
-        seen_trees = set()
 
         elitist_indices = np.argpartition(fitnesses, (-1 * elitist_population))[(-1 * elitist_population):]
         
         for i in elitist_indices: 
             individual = population[i]
-            signature = tree_signature(individual)
-            if signature not in seen_trees:
-                seen_trees.add(signature)
-                new_population.append(individual)
-                new_fitnesses.append(individual.fitness)
-                new_errors.append(individual.error)
+            new_population.append(individual)
+            new_fitnesses.append(individual.fitness)
+            new_errors.append(individual.error)
 
         # normalize weights so they sum to 1.0
         weights = np.array(fitnesses) / np.sum(fitnesses)
 
-        attempts = 0
-        while len(new_population) < INITIAL_POPULATION_SIZE:
+        for _ in range(INITIAL_POPULATION_SIZE - elitist_population):
+            
             p = np.random.random()
             if p < CROSSOVER_RATE:
+                # select two parents 
+                # (implement logic to prioritize higher fitness)
+                # optimization - choose index rather than node
+                # tournament selection
+
                 parent1 = tournament_selection(population, fitnesses, rng)
                 parent2 = tournament_selection(population, fitnesses, rng)
+
+                # perform crossover
                 child = crossover(parent1, parent2)
             elif p < CROSSOVER_RATE + CLONE_RATE:
+                # select one parent
                 parent = tournament_selection(population, fitnesses, rng)
+                # clone the parent
                 child = parent.copy()
             else:
+                # select one parent
                 parent = tournament_selection(population, fitnesses, rng)
-                child = mutate(parent, OPERATORS, X_PROBABILITY,VARIABLES, REAL_CONSTANTS)
-            signature = tree_signature(child)
-            if signature in seen_trees:
-                attempts += 1
-                if attempts >= 20:
-                    child = generate_random_tree(OPERATORS, MAX_DEPTH, LEAF_PROBABILITY, X_PROBABILITY, VARIABLES, REAL_CONSTANTS)
-                    signature = tree_signature(child)
-                    attempts = 0
-                if signature in seen_trees:
-                    continue
-            seen_trees.add(signature)
-            attempts = 0
+                # perform mutation
+                child = mutate(parent, OPERATORS, X_PROBABILITY, VARIABLES, REAL_CONSTANTS)
             evaluation = get_evaluation(child, x_values, y_true)
             child.fitness = evaluation[1]
             child.error = evaluation[0]
@@ -115,11 +108,8 @@ def symbolic_regression(train_df, initial_population):
         fitnesses = new_fitnesses
         errors = new_errors
 
-        best_index = np.argmax(fitnesses)
         current_error = min(errors)
         print(f"Generation {generation}: Current Error = {current_error:.6f}")
-        print(f"Best Tree Size: {population[best_index].size()}")
-        print(f"Best Fitness: {fitnesses[best_index]:.12f}")
         
         generation += 1
         
@@ -145,16 +135,15 @@ def get_evaluation(individual, X, y):
     # temporarily ignore numpy errors
     with np.errstate(all="ignore"):
         y_pred = individual.evaluate(X)
-        if not np.all(np.isfinite(y_pred)):
-            return (float("inf"), 0.0)
-        error = np.sqrt(np.mean((y - y_pred) ** 2))
-    if not np.isfinite(error):
+    # check if all predictions are finite
+    if not np.all(np.isfinite(y_pred)):
         return (float("inf"), 0.0)
-    penalty = 0.005 * individual.size()
-    scale = np.sqrt(np.mean(y ** 2))
-    normalized_error = error / max(scale, 1e-12)
-    fitness = 1 / (1 + normalized_error + penalty)
-    return (error, fitness)
+    # calculate rmse
+    error = np.sqrt(np.mean((y - y_pred) ** 2))
+    # complexity penalty
+    penalty = 0.001 * individual.size()
+    # return fitness and error
+    return (error, 1 / (1 + error + penalty))
 
 def main():
 
@@ -177,18 +166,17 @@ def main():
     initial_population = generate_initial_population()
     print("start symbolic regression")
     most_fit = symbolic_regression(train_df, initial_population)  
-    print("\nBEST DISCOVERED EQUATION:")
-    print(most_fit.to_infix())
-    print("Tree Size:", most_fit.size())
-    print("Tree Depth:", most_fit.depth())
-    print("Training RMSE:", most_fit.error)
+    most_fit_tree = most_fit.__str__()
+    most_fit_str = most_fit.to_infix()
+    print(f"Original Individual Tree:\n{most_fit_tree}")
+    print(f"Original Individual: {most_fit_str}")
     
     # testing: 
-    
+    x_true_values, y_true_values = to_arrays(test_df, ["x"], "f(x)")
     if DATASET == 1:
         x_true_values, y_true_values = to_arrays(test_df, ["x"], "f(x)")
     else:
-        x_true_values, y_true_values = to_arrays(test_df, ["x1", "x2", "x3"], "f(x1,x2,x3)")
+        x_values, y_true = to_arrays(train_df, ["x1", "x2", "x3"], "f(x1,x2,x3)")
 
         
     error, fitness = get_evaluation(most_fit, x_true_values, y_true_values)
