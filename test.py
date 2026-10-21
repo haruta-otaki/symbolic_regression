@@ -20,7 +20,7 @@ MUTATION_RATE = 0.2
 X_PROBABILITY = 0.5
 LEAF_PROBABILITY = 0.3
 
-DATASET = 2
+DATASET = 1
 
 # Number of rows used for fitness evaluation
 # during each generation.
