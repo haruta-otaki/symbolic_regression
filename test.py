@@ -17,7 +17,7 @@ LEAF_PROBABILITY = 0.2
 TOURNAMENT_SIZE = 10
 ELITE_RATIO = 0.01
 
-DATASET = 1
+DATASET = 2
 
 if DATASET == 1:
     VARIABLES = ["x"]
@@ -39,8 +39,7 @@ def symbolic_regression(train_df, initial_population):
     if DATASET == 1:
         x_values, y_true = to_arrays(train_df, ["x"], "f(x)")
     else:
-        x_values = train_df[["x1", "x2", "x3"]].to_dict("records")
-        y_true = train_df["f(x1,x2,x3)"].tolist()
+        x_values, y_true = to_arrays(train_df, ["x1", "x2", "x3"], "f(x1,x2,x3)")
     population = []
     fitnesses = []
     errors = []
@@ -98,7 +97,7 @@ def symbolic_regression(train_df, initial_population):
                 # select one parent
                 parent = tournament_selection(population, fitnesses, rng)
                 # perform mutation
-                child = mutate(parent.copy(), OPERATORS, X_PROBABILITY)
+                child = mutate(parent, OPERATORS, X_PROBABILITY, VARIABLES, REAL_CONSTANTS)
             evaluation = get_evaluation(child, x_values, y_true)
             child.fitness = evaluation[1]
             child.error = evaluation[0]
@@ -174,9 +173,17 @@ def main():
     
     # testing: 
     x_true_values, y_true_values = to_arrays(test_df, ["x"], "f(x)")
-    error = get_evaluation(most_fit, x_true_values, y_true_values)[0]
+    if DATASET == 1:
+        x_true_values, y_true_values = to_arrays(test_df, ["x"], "f(x)")
+    else:
+        x_values, y_true = to_arrays(train_df, ["x1", "x2", "x3"], "f(x1,x2,x3)")
 
-    print(f"Error: {error}")
+        
+    error, fitness = get_evaluation(most_fit, x_true_values, y_true_values)
+
+    print(f"Test RMSE: {error}")
+    print(f"Test Fitness: {fitness}")
+
     
 if __name__ == "__main__":
     main()
