@@ -162,7 +162,7 @@ def mutate(node, operators, p_x=0.5, variables=None, real_constants=False):
     
     # choose a random node to mutate
     nodes = get_all_nodes(child, [])
-    mutate_node = random.choice(nodes).
+    mutate_node = random.choice(nodes)
 
     p = random.random()
     
