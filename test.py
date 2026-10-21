@@ -15,7 +15,7 @@ CLONE_RATE = 0.1
 MUTATION_RATE = 0.2
 
 X_PROBABILITY = 0.5
-LEAF_PROBABILITY = 0.5
+LEAF_PROBABILITY = 0.4
 TOURNAMENT_SIZE = 5
 
 # generate 
@@ -37,8 +37,11 @@ def symbolic_regression(train_df, initial_population):
     print("initialize population fitness")
     # initialize fitness for initial population
     for individual in initial_population:
-        individual.fitness = get_evaluation(individual, x_values, y_true)[1]
+        evaluation = get_evaluation(individual, x_values, y_true)
+        individual.fitness = evaluation[1]
+        individual.error = evaluation[0]
         fitnesses.append(individual.fitness)
+        errors.append(individual.error)
 
     print("start genetic algorithm")
     population = initial_population
@@ -56,6 +59,7 @@ def symbolic_regression(train_df, initial_population):
             individual = population[i]
             new_population.append(individual)
             new_fitnesses.append(individual.fitness)
+            new_errors.append(individual.error)
 
         # normalize weights so they sum to 1.0
         weights = np.array(fitnesses) / np.sum(fitnesses)
@@ -86,9 +90,10 @@ def symbolic_regression(train_df, initial_population):
                 child = mutate(parent.copy(), OPERATORS, X_PROBABILITY)
             evaluation = get_evaluation(child, x_values, y_true)
             child.fitness = evaluation[1]
+            child.error = evaluation[0]
             new_population.append(child)
             new_fitnesses.append(child.fitness)
-            new_errors.append(evaluation[0])
+            new_errors.append(child.error)
         population = new_population
         fitnesses = new_fitnesses
         errors = new_errors
@@ -101,11 +106,10 @@ def symbolic_regression(train_df, initial_population):
     max_fitness_index = np.argmax(fitnesses) 
     return population[max_fitness_index]
 
-def tournament_selection(population, fitnesses):
-    indices = random.sample(range(len(population)), TOURNAMENT_SIZE)
-    placeholder = np.array(fitnesses)
-    contestants = placeholder[indices]
-    return population[np.argmax(contestants)]
+def tournament_selection(population, fitnesses, rng):
+    indices = rng.choice(len(population), size=TOURNAMENT_SIZE, replace=False)
+    winner = indices[np.argmax(np.asarray(fitnesses)[indices])]
+    return population[winner]
 
 def get_evaluation(individual, x_values, y_true):
     y_pred = []

@@ -1,6 +1,7 @@
 import csv
 import random
 import math
+import sys
 
 class Node:
     def __init__(self, value=None, left=None, right=None):
@@ -8,6 +9,7 @@ class Node:
         self.left = left
         self.right = right
         self.fitness = 0
+        self.error = sys.float_info.max
 
     def is_terminal(self):
         return self.left is None and self.right is None
