@@ -1,3 +1,4 @@
+import sympy as sp
 import random
 import pandas as pd
 import math
@@ -6,7 +7,7 @@ from Tree import Node, generate_random_tree, mutate, crossover
 
 INITIAL_POPULATION_SIZE = 500
 MAX_DEPTH = 5
-OPERATORS = ["+", "-", "*", "/"] 
+OPERATORS = ["+", "-", "*", "/"]
 GENERATIONS = 50
 CROSSOVER_RATE = 0.7
 CLONE_RATE = 0.1
@@ -14,7 +15,7 @@ MUTATION_RATE = 0.2
 
 X_PROBABILITY = 0.5
 LEAF_PROBABILITY = 0.2
-TOURNAMENT_SIZE = 10
+TOURNAMENT_SIZE = 5
 ELITE_RATIO = 0.01
 
 DATASET = 2
@@ -26,7 +27,8 @@ else:
     VARIABLES = ["x1", "x2", "x3"]
     REAL_CONSTANTS = True
 
-# generate 
+
+    # generate
 def generate_initial_population():
     initial_population = []
     for _ in range(INITIAL_POPULATION_SIZE):
@@ -65,26 +67,30 @@ def symbolic_regression(train_df, initial_population):
 
         elitist_indices = np.argpartition(fitnesses, (-1 * elitist_population))[(-1 * elitist_population):]
         
-        for i in elitist_indices: 
+        for i in elitist_indices:
             individual = population[i]
             new_population.append(individual)
             new_fitnesses.append(individual.fitness)
             new_errors.append(individual.error)
 
+
         # normalize weights so they sum to 1.0
         weights = np.array(fitnesses) / np.sum(fitnesses)
+
 
         for _ in range(INITIAL_POPULATION_SIZE - elitist_population):
             
             p = np.random.random()
             if p < CROSSOVER_RATE:
-                # select two parents 
+                # select two parents
                 # (implement logic to prioritize higher fitness)
                 # optimization - choose index rather than node
                 # tournament selection
 
+
                 parent1 = tournament_selection(population, fitnesses, rng)
                 parent2 = tournament_selection(population, fitnesses, rng)
+
 
                 # perform crossover
                 child = crossover(parent1, parent2)
@@ -108,25 +114,29 @@ def symbolic_regression(train_df, initial_population):
         fitnesses = new_fitnesses
         errors = new_errors
 
+
         current_error = min(errors)
         print(f"Generation {generation}: Current Error = {current_error:.6f}")
         
         generation += 1
         
-    max_fitness_index = np.argmax(fitnesses) 
+    max_fitness_index = np.argmax(fitnesses)
     return population[max_fitness_index]
+
 
 def tournament_selection(population, fitnesses, rng):
     indices = rng.choice(len(population), size=TOURNAMENT_SIZE, replace=False)
     winner = indices[np.argmax(np.asarray(fitnesses)[indices])]
     return population[winner]
 
+
 def to_arrays(df, x, y):
     X = {}
     for v in x:
-        column = df[v]                         
-        array = column.to_numpy(dtype=float)   
-        X[v] = array                            
+        column = df[v]                        
+        array = column.to_numpy(dtype=float)  
+        X[v] = array                           
+
 
     Y = df[y].to_numpy(dtype=float)
     return X, Y
@@ -138,35 +148,75 @@ def get_evaluation(individual, X, y):
     # check if all predictions are finite
     if not np.all(np.isfinite(y_pred)):
         return (float("inf"), 0.0)
-    if DATASET == 1: 
+    if DATASET == 1:
+        # linear scaling: best a + b * prediction, then RMSE
+        var_p = np.var(y_pred)
+        # no variance
+        if var_p < 1e-12:
+            coefficient = 0.0
+        else:
+            coefficient = np.mean((y_pred - y_pred.mean()) * (y - y.mean())) / var_p
+        individual.shift = y.mean() - coefficient * y_pred.mean()
+        individual.coefficient = coefficient
         # calculate rmse
-        error = np.sqrt(np.mean((y - y_pred) ** 2))
+        error = np.sqrt(np.mean((y - (individual.shift + coefficient * y_pred)) ** 2))
         # complexity penalty
         penalty = 0.01 * individual.size()
         # return fitness and error
-        return (error, 1 / (1 + error * (1 + penalty)))
-    else: 
+        return (error, 1 / (1 + error + penalty))
+    else:
         # f is rounded to 2 decimals, so a printed 0.00 is between 0 and 0.005
-        y = np.maximum(y, 0.005)
+        y = np.maximum(y, 0.001)
         # RMSLE needs positive predictions
         if np.any(y_pred <= 0):
             return (float("inf"), 0.0)
         log_gap = np.log(y) - np.log(y_pred)      # log of (true / predicted) per row
-        log_c = np.mean(log_gap)                  # best multiplier, in log form           
+        log_c = np.mean(log_gap)                  # best multiplier, in log form 
+        individual.shift = 0.0
+        individual.coefficient = np.exp(log_c);         
         error = np.sqrt(np.mean((log_gap - log_c) ** 2))
-        # RMSLE is already relative (0.01 ~ 1%), so a small additive penalty works
         penalty = 0.01 * individual.size()
-        return (error, 1 / (1 + error * (1 + penalty)))
+        return (error, 1 / (1 + error + penalty))
+
+
+def get_error(individual, X, y, df_copy):
+    with np.errstate(all="ignore"):
+        y_pred = individual.coefficient * individual.evaluate(X) + individual.shift
+    # check if all predictions are finite
+    if not np.all(np.isfinite(y_pred)):
+        return (float("inf"), 0.0)
+
+    if DATASET == 2:
+        df_copy["pred"] = y_pred
+        df_copy["abs_error"] = np.abs(df_copy["f(x1,x2,x3)"] - df_copy["pred"])
+
+
+        # 3. sort by error, biggest first, and show the top 5
+        print(df_copy.sort_values("abs_error", ascending=False).head(20))
+
+    rel = np.abs(y - y_pred) / y
+    print(f"Median relative error: {100 * np.median(rel):.3f}%")
+    # calculate rmse
+    error = np.sqrt(np.mean((y - y_pred) ** 2))
+    # complexity penalty
+    penalty = 0.01 * individual.size()
+    # return fitness and error
+    return (error, 1 / (1 + error * (1 + penalty)))
 
 def main():
     if DATASET == 2:
         df = pd.read_csv("data/dataset2.csv", skiprows=1, names=["x1", "x2", "x3", "f(x1,x2,x3)"])
+        before = len(df)
+        df = df[df["x3"] >= 0.1]
+        print(f"removed {before - len(df)} rows with x3 <= 0.1 (too imprecise after rounding)")
+
     else:
         df = pd.read_csv("data/dataset1.csv")
-
+    
     print("Dataset:", DATASET)
-    print("Actual columns:", [repr(col) for col in df.columns])
-    print(df.head())
+    print("Columns:", [repr(col) for col in df.columns])
+    # print(df.head())
+
 
     # select 80% of the data randomly for training
     train_df = df.sample(frac=0.8, random_state=42)
@@ -177,23 +227,25 @@ def main():
     print("generate initial population")
     initial_population = generate_initial_population()
     print("start symbolic regression")
-    most_fit = symbolic_regression(train_df, initial_population)  
+    most_fit = symbolic_regression(train_df, initial_population) 
     most_fit_tree = most_fit.__str__()
     most_fit_str = most_fit.to_infix()
     print(f"Original Individual Tree:\n{most_fit_tree}")
     print(f"Original Individual: {most_fit_str}")
+    expr = sp.sympify(most_fit.to_infix())
+    print("Simplified:", sp.simplify(most_fit.coefficient * expr + most_fit.shift))
     
-    # testing: 
+    # testing:
     if DATASET == 1:
         x_true_values, y_true_values = to_arrays(test_df, ["x"], "f(x)")
     else:
         x_true_values, y_true_values = to_arrays(test_df, ["x1", "x2", "x3"], "f(x1,x2,x3)")
         
-    error, fitness = get_evaluation(most_fit, x_true_values, y_true_values)
-
+    df_copy = test_df.copy()
+    error, fitness = get_error(most_fit, x_true_values, y_true_values, df_copy)
+    print(f"Test Coef: {most_fit.coefficient}")
     print(f"Test Error: {error}")
     print(f"Test Fitness: {fitness}")
-
     
 if __name__ == "__main__":
     main()
