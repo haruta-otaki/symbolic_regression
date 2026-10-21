@@ -1,30 +1,21 @@
-# complicated idea: multiple population 
-
-# create random population {x, range of constants}
-
-# cross over & mutation as per videos 
-# 
-# cross ovver
-# random 0 - 1 
-# ~0.3 mutate child 
-# update population 
-
+import random
 import pandas as pd
 import math
 import numpy as np
-from sklearn.metrics import root_mean_squared_error
 from Tree import Node, generate_random_tree, mutate, crossover
 
 INITIAL_POPULATION_SIZE = 500
-MAX_DEPTH = 6
-OPERATORS = ["+", "-", "*", "/"]
+MAX_DEPTH = 5
+OPERATORS = ["+", "-", "*", "/"] 
 GENERATIONS = 50
 CROSSOVER_RATE = 0.7
 CLONE_RATE = 0.1
 MUTATION_RATE = 0.2
 
 X_PROBABILITY = 0.5
-LEAF_PROBABILITY = 0.3
+LEAF_PROBABILITY = 0.2
+TOURNAMENT_SIZE = 10
+ELITE_RATIO = 0.01
 
 DATASET = 2
 
@@ -46,91 +37,113 @@ def generate_initial_population():
 def symbolic_regression(train_df, initial_population):
     rng = np.random.default_rng()
     if DATASET == 1:
-        x_values = train_df["x"].tolist()
-        y_true = train_df["f(x)"].tolist()
+        x_values, y_true = to_arrays(train_df, ["x"], "f(x)")
     else:
-        x_values = train_df[["x1", "x2", "x3"]].to_dict("records")
-        y_true = train_df["f(x1,x2,x3)"].tolist()
+        x_values, y_true = to_arrays(train_df, ["x1", "x2", "x3"], "f(x1,x2,x3)")
     population = []
     fitnesses = []
+    errors = []
+    elitist_population = int(round(INITIAL_POPULATION_SIZE * ELITE_RATIO))
     print("initialize population fitness")
     # initialize fitness for initial population
     for individual in initial_population:
-        individual.fitness = get_fitness(individual, x_values, y_true)
+        evaluation = get_evaluation(individual, x_values, y_true)
+        individual.fitness = evaluation[1]
+        individual.error = evaluation[0]
         fitnesses.append(individual.fitness)
+        errors.append(individual.error)
 
     print("start genetic algorithm")
     population = initial_population
-    for generation in range(GENERATIONS):
+    generation = 0
+    current_error = float('inf')
+    while generation < GENERATIONS and current_error > 1e-6:
         print(f"Generation {generation} started")
+        new_population = []
+        new_fitnesses = []
+        new_errors = []
 
-        best_index = np.argmax(fitnesses)
-        best_individual = population[best_index].copy()
-
-        new_population = [best_individual]
-        new_fitnesses = [best_individual.fitness]
+        elitist_indices = np.argpartition(fitnesses, (-1 * elitist_population))[(-1 * elitist_population):]
         
-        for _ in range(INITIAL_POPULATION_SIZE - 1):
-            # normalize weights so they sum to 1.0
-            weights = np.array(fitnesses) / np.sum(fitnesses)
+        for i in elitist_indices: 
+            individual = population[i]
+            new_population.append(individual)
+            new_fitnesses.append(individual.fitness)
+            new_errors.append(individual.error)
+
+        # normalize weights so they sum to 1.0
+        weights = np.array(fitnesses) / np.sum(fitnesses)
+
+        for _ in range(INITIAL_POPULATION_SIZE - elitist_population):
+            
             p = np.random.random()
             if p < CROSSOVER_RATE:
                 # select two parents 
                 # (implement logic to prioritize higher fitness)
+                # optimization - choose index rather than node
+                # tournament selection
 
-                parent1 = rng.choice(population, p=weights)
-                parent2 = rng.choice(population, p=weights)
+                parent1 = tournament_selection(population, fitnesses, rng)
+                parent2 = tournament_selection(population, fitnesses, rng)
 
                 # perform crossover
                 child = crossover(parent1, parent2)
             elif p < CROSSOVER_RATE + CLONE_RATE:
                 # select one parent
-                parent = rng.choice(population, p=weights)
+                parent = tournament_selection(population, fitnesses, rng)
                 # clone the parent
                 child = parent.copy()
             else:
                 # select one parent
-                parent = rng.choice(population, p=weights)
+                parent = tournament_selection(population, fitnesses, rng)
                 # perform mutation
-                child = mutate(parent.copy(), OPERATORS, X_PROBABILITY, VARIABLES, REAL_CONSTANTS)
-            child.fitness = get_fitness(child, x_values, y_true)
+                child = mutate(parent, OPERATORS, X_PROBABILITY, VARIABLES, REAL_CONSTANTS)
+            evaluation = get_evaluation(child, x_values, y_true)
+            child.fitness = evaluation[1]
+            child.error = evaluation[0]
             new_population.append(child)
             new_fitnesses.append(child.fitness)
+            new_errors.append(child.error)
         population = new_population
         fitnesses = new_fitnesses
+        errors = new_errors
 
-        best_fitness = max(fitnesses)
-        print(f"Generation {generation}: Best Fitness = {best_fitness:.6f}")
+        current_error = min(errors)
+        print(f"Generation {generation}: Current Error = {current_error:.6f}")
+        
+        generation += 1
         
     max_fitness_index = np.argmax(fitnesses) 
     return population[max_fitness_index]
 
-def get_fitness(individual, x_values, y_true):
-    y_pred = []
+def tournament_selection(population, fitnesses, rng):
+    indices = rng.choice(len(population), size=TOURNAMENT_SIZE, replace=False)
+    winner = indices[np.argmax(np.asarray(fitnesses)[indices])]
+    return population[winner]
 
-    try:
+def to_arrays(df, x, y):
+    X = {}
+    for v in x:
+        column = df[v]                         
+        array = column.to_numpy(dtype=float)   
+        X[v] = array                            
 
-        for x in x_values:
-            prediction = individual.evaluate(x)
-
-            #for infinity or non-number
-            if not math.isfinite(prediction):
-                return 0
-
-            y_pred.append(prediction)
-        
-        error = root_mean_squared_error(y_true, y_pred)
-
-        #for infinity or non-number
-        if not math.isfinite(error):
-            return 0
-        
-        complexity_penalty = 0.001 * individual.size()
-        return 1 / (1 + error + complexity_penalty)
-        
-    except (ValueError, OverflowError, ZeroDivisionError):
-        return 0
-
+    Y = df[y].to_numpy(dtype=float)
+    return X, Y
+    
+def get_evaluation(individual, X, y):
+    # temporarily ignore numpy errors
+    with np.errstate(all="ignore"):
+        y_pred = individual.evaluate(X)
+    # check if all predictions are finite
+    if not np.all(np.isfinite(y_pred)):
+        return (float("inf"), 0.0)
+    # calculate rmse
+    error = np.sqrt(np.mean((y - y_pred) ** 2))
+    # complexity penalty
+    penalty = 0.001 * individual.size()
+    # return fitness and error
+    return (error, 1 / (1 + error + penalty))
 
 def main():
 
@@ -159,41 +172,18 @@ def main():
     print(f"Original Individual: {most_fit_str}")
     
     # testing: 
-
+    x_true_values, y_true_values = to_arrays(test_df, ["x"], "f(x)")
     if DATASET == 1:
-        x_true_values = test_df["x"].tolist()
-        y_true_values = test_df["f(x)"].tolist()
+        x_true_values, y_true_values = to_arrays(test_df, ["x"], "f(x)")
     else:
-        x_true_values = test_df[["x1", "x2", "x3"]].to_dict("records")
-        y_true_values = test_df["f(x1,x2,x3)"].tolist()
+        x_values, y_true = to_arrays(train_df, ["x1", "x2", "x3"], "f(x1,x2,x3)")
 
-    test_fitness = get_fitness(most_fit, x_true_values, y_true_values)
+        
+    error, fitness = get_evaluation(most_fit, x_true_values, y_true_values)
 
-    print(f"Test Fitness: {test_fitness}")
+    print(f"Test RMSE: {error}")
+    print(f"Test Fitness: {fitness}")
+
     
-
-    # individual_1 = generate_random_tree(OPERATORS, MAX_DEPTH, LEAF_PROBABILITY, X_PROBABILITY)
-    # individual_1_tree = individual_1.__str__()
-    # individual_1_str = individual_1.to_infix()
-    # print(f"Original Individual Tree:\n{individual_1_tree}")
-    # print(f"Original Individual: {individual_1_str}")
-    # individual_2 = generate_random_tree(OPERATORS, MAX_DEPTH, LEAF_PROBABILITY, X_PROBABILITY)
-    # individual_2_tree = individual_2.__str__()
-    # individual_2_str = individual_2.to_infix()
-    # print(f"Original Individual Tree:\n{individual_2_tree}")
-    # print(f"Original Individual: {individual_2_str}")
-    # # mutated = mutate(individual, OPERATORS, X_PROBABILITY)
-    # # mutated_tree = mutated.__str__()
-    # # mutated_str = mutated.to_infix()
-    # # print(f"Mutated Individual Tree:\n{mutated_tree}")
-    # # print(f"Mutated Individual: {mutated_str}")
-    # crossover_node = crossover(individual_1, individual_2, CROSS_OVER_MAX_DEPTH)
-    # crossover_tree = crossover_node.__str__()
-    # crossover_str = crossover_node.to_infix()
-    # print(f"Crossover Individual Tree:\n{crossover_tree}")
-    # print(f"Crossover Individual: {crossover_str}")
-    
-
-
 if __name__ == "__main__":
     main()
