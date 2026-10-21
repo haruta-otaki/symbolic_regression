@@ -149,6 +149,8 @@ def main():
 
     if DATASET == 2:
         df = pd.read_csv("data/dataset2.csv", skiprows=1, names=["x1", "x2", "x3", "f(x1,x2,x3)"])
+        df["x1"] = df["x1"] / 1_000_000
+        df["x2"] = df["x2"] / 1_000_000
     else:
         df = pd.read_csv("data/dataset1.csv")
 
