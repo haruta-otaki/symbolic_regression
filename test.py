@@ -2,21 +2,20 @@ import random
 import pandas as pd
 import math
 import numpy as np
-import heapq
-from sklearn.metrics import root_mean_squared_error, r2_score
 from Tree import Node, generate_random_tree, mutate, crossover
 
 INITIAL_POPULATION_SIZE = 500
-MAX_DEPTH = 6
+MAX_DEPTH = 5
 OPERATORS = ["+", "-", "*", "/"] 
-GENERATIONS = 10
+GENERATIONS = 20
 CROSSOVER_RATE = 0.7
 CLONE_RATE = 0.1
 MUTATION_RATE = 0.2
 
 X_PROBABILITY = 0.5
 LEAF_PROBABILITY = 0.2
-TOURNAMENT_SIZE = 5
+TOURNAMENT_SIZE = 10
+ELITE_RATIO = 0.01
 
 DATASET = 2
 
@@ -38,15 +37,13 @@ def generate_initial_population():
 def symbolic_regression(train_df, initial_population):
     rng = np.random.default_rng()
     if DATASET == 1:
-        x_values = train_df["x"].tolist()
-        y_true = train_df["f(x)"].tolist()
+        x_values, y_true = to_arrays(train_df, ["x"], "f(x)")
     else:
-        x_values = train_df[["x1", "x2", "x3"]].to_dict("records")
-        y_true = train_df["f(x1,x2,x3)"].tolist()
+        x_values, y_true = to_arrays(train_df, ["x1", "x2", "x3"], "f(x1,x2,x3)")
     population = []
     fitnesses = []
     errors = []
-    elitist_population = int(round(INITIAL_POPULATION_SIZE * 0.01))
+    elitist_population = int(round(INITIAL_POPULATION_SIZE * ELITE_RATIO))
     print("initialize population fitness")
     # initialize fitness for initial population
     for individual in initial_population:
@@ -124,27 +121,42 @@ def tournament_selection(population, fitnesses, rng):
     winner = indices[np.argmax(np.asarray(fitnesses)[indices])]
     return population[winner]
 
-def get_evaluation(individual, x_values, y_true):
-    y_pred = []
+def to_arrays(df, x, y):
+    X = {}
+    for v in x:
+        column = df[v]                         
+        array = column.to_numpy(dtype=float)   
+        X[v] = array                            
 
-    try:
-        for x in x_values:
-            prediction = individual.evaluate(x)
-
-            #for infinity or non-number
-            if not math.isfinite(prediction):
-                return (float("inf"), 0.0)
-
-            y_pred.append(prediction)
-        error = root_mean_squared_error(y_true, y_pred)
-        #for infinity or non-number
-        if not math.isfinite(error):
-            return (float("inf"), 0.0)
-        complexity_penalty = 0.001 * individual.size()
-        return (error, 1 / (1 + error + complexity_penalty))
-        
-    except (ValueError, OverflowError, ZeroDivisionError, KeyError):
+    Y = df[y].to_numpy(dtype=float)
+    return X, Y
+    
+def get_evaluation(individual, X, y):
+    # temporarily ignore numpy errors
+    with np.errstate(all="ignore"):
+        y_pred = individual.evaluate(X)
+    # check if all predictions are finite
+    if not np.all(np.isfinite(y_pred)):
         return (float("inf"), 0.0)
+    if DATASET == 1: 
+        # calculate rmse
+        error = np.sqrt(np.mean((y - y_pred) ** 2))
+        # complexity penalty
+        penalty = 0.01 * individual.size()
+        # return fitness and error
+        return (error, 1 / (1 + error * (1 + penalty)))
+    else: 
+        # f is rounded to 2 decimals, so a printed 0.00 is between 0 and 0.005
+        y = np.maximum(y, 0.005)
+        # RMSLE needs positive predictions
+        if np.any(y_pred <= 0):
+            return (float("inf"), 0.0)
+        log_gap = np.log(y) - np.log(y_pred)      # log of (true / predicted) per row
+        log_c = np.mean(log_gap)                  # best multiplier, in log form           
+        error = np.sqrt(np.mean((log_gap - log_c) ** 2))
+        # RMSLE is already relative (0.01 ~ 1%), so a small additive penalty works
+        penalty = 0.01 * individual.size()
+        return (error, 1 / (1 + error * (1 + penalty)))
 
 def main():
 
@@ -174,15 +186,13 @@ def main():
     
     # testing: 
     if DATASET == 1:
-        x_true_values = test_df["x"].tolist()
-        y_true_values = test_df["f(x)"].tolist()
+        x_true_values, y_true_values = to_arrays(test_df, ["x"], "f(x)")
     else:
-        x_true_values = test_df[["x1", "x2", "x3"]].to_dict("records")
-        y_true_values = test_df["f(x1,x2,x3)"].tolist()
+        x_true_values, y_true_values = to_arrays(test_df, ["x1", "x2", "x3"], "f(x1,x2,x3)")
         
     error, fitness = get_evaluation(most_fit, x_true_values, y_true_values)
 
-    print(f"Test RMSE: {error}")
+    print(f"Test Error: {error}")
     print(f"Test Fitness: {fitness}")
 
     
