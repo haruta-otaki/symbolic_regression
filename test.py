@@ -109,7 +109,11 @@ def symbolic_regression(train_df, initial_population):
         errors = new_errors
 
         current_error = min(errors)
+        best_index = np.argmax(fitnesses)
         print(f"Generation {generation}: Current Error = {current_error:.6f}")
+        print(f"Best Tree Size: {population[best_index].size()}")
+        print(f"Best Tree Depth: {population[best_index].depth()}")
+        print(f"Average Tree Size: {np.mean([tree.size() for tree in population]):.1f}")
         
         generation += 1
         
