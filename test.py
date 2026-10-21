@@ -7,7 +7,7 @@ from Tree import Node, generate_random_tree, mutate, crossover
 INITIAL_POPULATION_SIZE = 500
 MAX_DEPTH = 5
 OPERATORS = ["+", "-", "*", "/"] 
-GENERATIONS = 50
+GENERATIONS = 20
 CROSSOVER_RATE = 0.7
 CLONE_RATE = 0.1
 MUTATION_RATE = 0.2
@@ -138,12 +138,25 @@ def get_evaluation(individual, X, y):
     # check if all predictions are finite
     if not np.all(np.isfinite(y_pred)):
         return (float("inf"), 0.0)
-    # calculate rmse
-    error = np.sqrt(np.mean((y - y_pred) ** 2))
-    # complexity penalty
-    penalty = 0.001 * individual.size()
-    # return fitness and error
-    return (error, 1 / (1 + error + penalty))
+    if DATASET == 1: 
+        # calculate rmse
+        error = np.sqrt(np.mean((y - y_pred) ** 2))
+        # complexity penalty
+        penalty = 0.01 * individual.size()
+        # return fitness and error
+        return (error, 1 / (1 + error * (1 + penalty)))
+    else: 
+        # f is rounded to 2 decimals, so a printed 0.00 is between 0 and 0.005
+        y = np.maximum(y, 0.005)
+        # RMSLE needs positive predictions
+        if np.any(y_pred <= 0):
+            return (float("inf"), 0.0)
+        log_gap = np.log(y) - np.log(y_pred)      # log of (true / predicted) per row
+        log_c = np.mean(log_gap)                  # best multiplier, in log form           
+        error = np.sqrt(np.mean((log_gap - log_c) ** 2))
+        # RMSLE is already relative (0.01 ~ 1%), so a small additive penalty works
+        penalty = 0.01 * individual.size()
+        return (error, 1 / (1 + error * (1 + penalty)))
 
 def main():
 
@@ -172,16 +185,14 @@ def main():
     print(f"Original Individual: {most_fit_str}")
     
     # testing: 
-    x_true_values, y_true_values = to_arrays(test_df, ["x"], "f(x)")
     if DATASET == 1:
         x_true_values, y_true_values = to_arrays(test_df, ["x"], "f(x)")
     else:
-        x_values, y_true = to_arrays(train_df, ["x1", "x2", "x3"], "f(x1,x2,x3)")
-
+        x_true_values, y_true_values = to_arrays(test_df, ["x1", "x2", "x3"], "f(x1,x2,x3)")
         
     error, fitness = get_evaluation(most_fit, x_true_values, y_true_values)
 
-    print(f"Test RMSE: {error}")
+    print(f"Test Error: {error}")
     print(f"Test Fitness: {fitness}")
 
     
