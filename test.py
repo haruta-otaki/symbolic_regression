@@ -8,14 +8,14 @@ INITIAL_POPULATION_SIZE = 500
 MAX_DEPTH = 5
 OPERATORS = ["+", "-", "*", "/"] 
 GENERATIONS = 50
-CROSSOVER_RATE = 0.7
+CROSSOVER_RATE = 0.6
 CLONE_RATE = 0.1
-MUTATION_RATE = 0.2
+MUTATION_RATE = 0.3
 
-X_PROBABILITY = 0.5
-LEAF_PROBABILITY = 0.2
-TOURNAMENT_SIZE = 10
-ELITE_RATIO = 0.01
+X_PROBABILITY = 0.7
+LEAF_PROBABILITY = 0.3
+TOURNAMENT_SIZE = 5
+ELITE_RATIO = 0.02
 
 DATASET = 2
 
@@ -138,15 +138,16 @@ def get_evaluation(individual, X, y):
     # temporarily ignore numpy errors
     with np.errstate(all="ignore"):
         y_pred = individual.evaluate(X)
-    # check if all predictions are finite
-    if not np.all(np.isfinite(y_pred)):
+        if not np.all(np.isfinite(y_pred)):
+            return (float("inf"), 0.0)
+        error = np.sqrt(np.mean((y - y_pred) ** 2))
+    if not np.isfinite(error):
         return (float("inf"), 0.0)
-    # calculate rmse
-    error = np.sqrt(np.mean((y - y_pred) ** 2))
-    # complexity penalty
-    penalty = 0.1 * individual.size()
-    # return fitness and error
-    return (error, 1 / (1 + error + penalty))
+    penalty = 0.01 * individual.size()
+    scale = np.sqrt(np.mean(y ** 2))
+    normalized_error = error / max(scale, 1e-12)
+    fitness = 1 / (1 + normalized_error + penalty)
+    return (error, fitness)
 
 def main():
 
