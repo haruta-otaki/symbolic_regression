@@ -168,7 +168,7 @@ def generate_random_tree(operators, depth=5, p_terminal=0.2, p_x=0.5, variables=
 
 def mutate(node, operators, p_x=0.5, variables=None, real_constants=False):
 
-     if variables is None:
+    if variables is None:
         variables = ["x"]
 
     #work on copy so original parent remains unchanged
