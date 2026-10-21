@@ -133,7 +133,11 @@ def get_fitness(individual, x_values, y_true):
 
 
 def main():
-    df = pd.read_csv(f"data/dataset{DATASET}.csv")
+
+    if DATASET == 2:
+        df = pd.read_csv("data/dataset2.csv", skiprows=1, names=["x1", "x2", "x3", "f(x1,x2,x3)"])
+    else:
+        df = pd.read_csv("data/dataset1.csv")
 
     print("Dataset:", DATASET)
     print("Actual columns:", [repr(col) for col in df.columns])
