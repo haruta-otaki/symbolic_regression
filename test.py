@@ -26,18 +26,31 @@ MUTATION_RATE = 0.2
 X_PROBABILITY = 0.5
 LEAF_PROBABILITY = 0.3
 
+DATASET = 2
+
+if DATASET == 1:
+    VARIABLES = ["x"]
+    REAL_CONSTANTS = False
+else:
+    VARIABLES = ["x1", "x2", "x3"]
+    REAL_CONSTANTS = True
+
 # generate 
 def generate_initial_population():
     initial_population = []
     for _ in range(INITIAL_POPULATION_SIZE):
-        individual = generate_random_tree(OPERATORS, MAX_DEPTH, LEAF_PROBABILITY, X_PROBABILITY)
+        individual = generate_random_tree(OPERATORS, MAX_DEPTH, LEAF_PROBABILITY, X_PROBABILITY, VARIABLES, REAL_CONSTANTS)
         initial_population.append(individual)
     return initial_population
 
 def symbolic_regression(train_df, initial_population):
     rng = np.random.default_rng()
-    x_values = train_df['x'].tolist()
-    y_true = train_df['f(x)'].tolist()
+    if DATASET == 1:
+        x_values = train_df["x"].tolist()
+        y_true = train_df["f(x)"].tolist()
+    else:
+        x_values = train_df[["x1", "x2", "x3"]].to_dict("records")
+        y_true = train_df["y"].tolist()
     population = []
     fitnesses = []
     print("initialize population fitness")
@@ -79,7 +92,7 @@ def symbolic_regression(train_df, initial_population):
                 # select one parent
                 parent = rng.choice(population, p=weights)
                 # perform mutation
-                child = mutate(parent.copy(), OPERATORS, X_PROBABILITY)
+                child = mutate(parent.copy(), OPERATORS, X_PROBABILITY, VARIABLES, REAL_CONSTANTS)
             child.fitness = get_fitness(child, x_values, y_true)
             new_population.append(child)
             new_fitnesses.append(child.fitness)
@@ -120,7 +133,7 @@ def get_fitness(individual, x_values, y_true):
 
 
 def main():
-    df = pd.read_csv('data/dataset1.csv')
+    df = pd.read_csv(f"data/dataset{DATASET}.csv")
 
     # select 80% of the data randomly for training
     train_df = df.sample(frac=0.8, random_state=42)
@@ -138,8 +151,14 @@ def main():
     print(f"Original Individual: {most_fit_str}")
     
     # testing: 
-    x_true_values = test_df['x'].tolist()
-    y_true_values = test_df['f(x)'].tolist()
+
+    if DATASET == 1:
+        x_true_values = test_df["x"].tolist()
+        y_true_values = test_df["f(x)"].tolist()
+    else:
+        x_true_values = test_df[["x1", "x2", "x3"]].to_dict("records")
+        y_true_values = test_df["y"].tolist()
+
     test_fitness = get_fitness(most_fit, x_true_values, y_true_values)
 
     print(f"Test Fitness: {test_fitness}")
