@@ -143,7 +143,7 @@ def get_evaluation(individual, X, y):
         error = np.sqrt(np.mean((y - y_pred) ** 2))
     if not np.isfinite(error):
         return (float("inf"), 0.0)
-    penalty = 0.01 * individual.size()
+    penalty = 0.005 * individual.size()
     scale = np.sqrt(np.mean(y ** 2))
     normalized_error = error / max(scale, 1e-12)
     fitness = 1 / (1 + normalized_error + penalty)
