@@ -224,7 +224,7 @@ def crossover(parent1, parent2):
     # choose a random nodes to cross over
     donor_nodes = get_all_nodes(donor, [])
     donor_weights = [1 / node.size() for node in donor_nodes]
-     donor_subtree = random.choices(donor_nodes, weights=donor_weights, k=1)[0].copy()
+    donor_subtree = random.choices(donor_nodes, weights=donor_weights, k=1)[0].copy()
 
 
 
