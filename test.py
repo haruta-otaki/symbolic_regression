@@ -7,20 +7,23 @@ from Tree import Node, generate_random_tree, mutate, crossover
 
 INITIAL_POPULATION_SIZE = 500
 MAX_DEPTH = 5
-OPERATORS = ["+", "-", "*", "/"]
-GENERATIONS = 50
+BINARY_OPERATORS = ["+", "-", "*", "/"]
+UNARY_OPERATORS = ["sin", "log", "exp"]
+
+GENERATIONS = 20
 CROSSOVER_RATE = 0.7
 CLONE_RATE = 0.1
 MUTATION_RATE = 0.2
 
 X_PROBABILITY = 0.5
 LEAF_PROBABILITY = 0.2
+UNARY_PROBABILITY = 0.2
 TOURNAMENT_SIZE = 5
 ELITE_RATIO = 0.01
 
-DATASET = 2
+DATASET = 3
 
-if DATASET == 1:
+if DATASET == 1 or DATASET == 3:
     VARIABLES = ["x"]
     REAL_CONSTANTS = False
 else:
@@ -32,13 +35,17 @@ else:
 def generate_initial_population():
     initial_population = []
     for _ in range(INITIAL_POPULATION_SIZE):
-        individual = generate_random_tree(OPERATORS, MAX_DEPTH, LEAF_PROBABILITY, X_PROBABILITY, VARIABLES, REAL_CONSTANTS)
+        if DATASET == 3:
+            individual = generate_random_tree(BINARY_OPERATORS, UNARY_OPERATORS, UNARY_PROBABILITY, MAX_DEPTH, LEAF_PROBABILITY, X_PROBABILITY, VARIABLES, REAL_CONSTANTS)
+        else: 
+            individual = generate_random_tree(BINARY_OPERATORS, UNARY_OPERATORS, 0.0, MAX_DEPTH, LEAF_PROBABILITY, X_PROBABILITY, VARIABLES, REAL_CONSTANTS)
+
         initial_population.append(individual)
     return initial_population
 
 def symbolic_regression(train_df, initial_population):
     rng = np.random.default_rng()
-    if DATASET == 1:
+    if DATASET == 1 or DATASET == 3:
         x_values, y_true = to_arrays(train_df, ["x"], "f(x)")
     else:
         x_values, y_true = to_arrays(train_df, ["x1", "x2", "x3"], "f(x1,x2,x3)")
@@ -103,7 +110,10 @@ def symbolic_regression(train_df, initial_population):
                 # select one parent
                 parent = tournament_selection(population, fitnesses, rng)
                 # perform mutation
-                child = mutate(parent, OPERATORS, X_PROBABILITY, VARIABLES, REAL_CONSTANTS)
+                if DATASET == 3: 
+                    child = mutate(parent, BINARY_OPERATORS, UNARY_OPERATORS, UNARY_PROBABILITY, X_PROBABILITY, VARIABLES, REAL_CONSTANTS)
+                else: 
+                    child = mutate(parent, BINARY_OPERATORS, UNARY_OPERATORS, 0.0, X_PROBABILITY, VARIABLES, REAL_CONSTANTS)
             evaluation = get_evaluation(child, x_values, y_true)
             child.fitness = evaluation[1]
             child.error = evaluation[0]
@@ -164,7 +174,7 @@ def get_evaluation(individual, X, y):
         penalty = 0.01 * individual.size()
         # return fitness and error
         return (error, 1 / (1 + error + penalty))
-    else:
+    elif DATASET == 2:
         # f is rounded to 2 decimals, so a printed 0.00 is between 0 and 0.005
         y = np.maximum(y, 0.001)
         # RMSLE needs positive predictions
@@ -177,7 +187,14 @@ def get_evaluation(individual, X, y):
         error = np.sqrt(np.mean((log_gap - log_c) ** 2))
         penalty = 0.01 * individual.size()
         return (error, 1 / (1 + error + penalty))
-
+    else: 
+        individual.shift = 0.0
+        individual.coefficient = 1.0;     
+        error = np.sqrt(np.mean((y - (individual.shift + individual.coefficient * y_pred)) ** 2))
+        # complexity penalty
+        penalty = 0.01 * individual.size()
+        # return fitness and error
+        return (error, 1 / (1 + error + penalty))
 
 def get_error(individual, X, y, df_copy):
     with np.errstate(all="ignore"):
@@ -205,7 +222,7 @@ def get_error(individual, X, y, df_copy):
 
 def main():
     if DATASET == 2:
-        df = pd.read_csv("data/dataset2.csv", skiprows=1, names=["x1", "x2", "x3", "f(x1,x2,x3)"])
+        df = pd.read_csv(f"data/dataset{DATASET}.csv", skiprows=1, names=["x1", "x2", "x3", "f(x1,x2,x3)"])
         before = len(df)
         df = df[df["x3"] >= 0.1]
         print(f"removed {before - len(df)} rows with x3 <= 0.1 (too imprecise after rounding)")
@@ -236,7 +253,7 @@ def main():
     print("Simplified:", sp.simplify(most_fit.coefficient * expr + most_fit.shift))
     
     # testing:
-    if DATASET == 1:
+    if DATASET == 1 or DATASET == 3:
         x_true_values, y_true_values = to_arrays(test_df, ["x"], "f(x)")
     else:
         x_true_values, y_true_values = to_arrays(test_df, ["x1", "x2", "x3"], "f(x1,x2,x3)")

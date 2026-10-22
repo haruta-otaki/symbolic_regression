@@ -3,8 +3,6 @@ import random
 import math
 import sys
 import numpy as np
-
-
 class Node:
     def __init__(self, value=None, left=None, right=None):
         self.value = value
@@ -25,46 +23,67 @@ class Node:
             if self.value in X:
                 return X[self.value]
             return np.full(len(next(iter(X.values()))), float(self.value))
-        l = self.left.evaluate(X)
-        r = self.right.evaluate(X)
-        if self.value == "+": return l + r
-        if self.value == "-": return l - r
-        if self.value == "*": return l * r
-        if self.value == "/":
-            # safe to divide
-            safe = np.abs(r) > 1e-6
-            # fallback
-            result = np.ones_like(l)
-            # calculate for safe rows only
-            result[safe] = l[safe] / r[safe]
-            return result
-        raise ValueError(f"Unknown operator: {self.value}")
+        if self.value == "sin": 
+            l = self.left.evaluate(X)
+            return np.sin(l)
+        elif self.value == "log": 
+            l = self.left.evaluate(X)
+            return np.log(l)
+        elif self.value == "exp": 
+            l = self.left.evaluate(X)
+            return np.exp(l)
+        else:    
+            l = self.left.evaluate(X)
+            r = self.right.evaluate(X) 
+            if self.value == "+": return l + r
+            if self.value == "-": return l - r
+            if self.value == "*": return l * r
+            if self.value == "/":
+                # safe to divide
+                safe = np.abs(r) > 1e-6
+                # fallback
+                result = np.ones_like(l)
+                # calculate for safe rows only
+                result[safe] = l[safe] / r[safe]
+                return result
+            raise ValueError(f"Unknown operator: {self.value}")
 
 
     #find depth
     def depth(self):
         if self.is_terminal():
             return 1
-        return 1 + max(self.left.depth(), self.right.depth())
+        elif self.right is None:
+                    return 1 + self.left.size() 
+        else:
+            return 1 + max(self.left.depth(), self.right.depth())
 
 
     #size
     def size(self):
         if self.is_terminal():
             return 1
-        return 1 + self.left.size() + self.right.size()
+        elif self.right is None:
+            return 1 + self.left.size() 
+        else: 
+            return 1 + self.left.size() + self.right.size()
 
 
     #copy of tree
     def copy(self):
         if self.is_terminal():
             new_node = Node(self.value)
+        elif self.right is None:
+            new_node = Node(
+                self.value,
+                self.left.copy(),
+                None,
+            )
         else:
             new_node = Node(
                 self.value,
                 self.left.copy(),
                 self.right.copy(),
-                
             )
 
         new_node.coefficient = self.coefficient
@@ -86,10 +105,20 @@ class Node:
         if self.is_terminal():
             return [label], len(label), (len(label) - 1) // 2
 
+        # unary node (sin, cos, exp, log): label directly above its one child, joined by "|"
+        if self.right is None:
+            c_lines, c_w, c_c = self.left._render()
+            start = c_c - (len(label) - 1) // 2          # centre the label over the child
+            pad_l = max(0, -start)                       # shift right if the label overhangs on the left
+            width = max(c_w + pad_l, start + pad_l + len(label))
+            mid = c_c + pad_l                            # this node's column
+            top = (" " * (start + pad_l) + label).ljust(width)
+            bar = (" " * mid + "|").ljust(width)
+            body = [(" " * pad_l + line).ljust(width) for line in c_lines]
+            return [top, bar] + body, width, mid
 
         l_lines, l_w, l_c = self.left._render()
         r_lines, r_w, r_c = self.right._render()
-
 
         # Space between the two subtrees; widen by one if needed so the
         # parent can sit exactly halfway between its children.
@@ -100,13 +129,11 @@ class Node:
         mid = (l_c + r_c) // 2            # parent's column
         k = (mid - l_c + 1) // 2          # how far the / and \ sit from the parent
 
-
         height = max(len(l_lines), len(r_lines))
         l_lines = l_lines + [" " * l_w] * (height - len(l_lines))
         r_lines = r_lines + [" " * r_w] * (height - len(r_lines))
         body = [a + " " * gap + b for a, b in zip(l_lines, r_lines)]
         width = l_w + gap + r_w
-
 
         # Centre the label on `mid`, growing the block if the label overhangs.
         start = mid - (len(label) - 1) // 2
@@ -115,17 +142,18 @@ class Node:
         start, mid, width = start + pad_l, mid + pad_l, width + pad_l + pad_r
         body = [" " * pad_l + line + " " * pad_r for line in body]
 
-
         top = (" " * start + label).ljust(width)
         branches = (" " * (mid - k) + "/" + " " * (2 * k - 1) + "\\").ljust(width)
         return [top, branches] + body, width, mid
 
     # Convert tree to mathematical expression
-
     def to_infix(self):
         if self.is_terminal():
             return str(self.value)
 
+        # unary node: function-call style, e.g. sin(x), exp((x + 1))
+        if self.right is None:
+            return f"{self.value}({self.left.to_infix()})"
 
         return (
             f"({self.left.to_infix()} "
@@ -139,8 +167,11 @@ def get_all_nodes(node, nodes):
     nodes.append(node)
         
     if not node.is_terminal():
-        get_all_nodes(node.left, nodes)
-        get_all_nodes(node.right, nodes)
+        if node.right is None:
+            get_all_nodes(node.left, nodes)
+        else: 
+            get_all_nodes(node.left, nodes)
+            get_all_nodes(node.right, nodes)
 
 
     return nodes
@@ -152,21 +183,18 @@ def get_all_nodes(node, nodes):
 def get_all_inner_nodes(node, nodes):
     if node.is_terminal():
         return nodes
-
-
     nodes.append(node)
-
-
-    get_all_inner_nodes(node.left, nodes)
-    get_all_inner_nodes(node.right, nodes)
-
-
+    if node.right is None:
+        get_all_inner_nodes(node.left, nodes)
+    else: 
+        get_all_inner_nodes(node.left, nodes)
+        get_all_inner_nodes(node.right, nodes)
     return nodes
 
 
 
 
-def generate_random_tree(operators, depth=5, p_terminal=0.2, p_x=0.5, variables=None, real_constants=False):
+def generate_random_tree(binary_operators, unary_operators, p_unary, depth=5, p_terminal=0.2, p_x=0.5, variables=None, real_constants=False):
 
 
     if variables is None:
@@ -180,14 +208,17 @@ def generate_random_tree(operators, depth=5, p_terminal=0.2, p_x=0.5, variables=
             return Node(str(constant))
         return Node(str(random.randint(-5, 5)))
 
+    if random.random() < p_unary: 
+        return Node(
+                random.choice(unary_operators),
+                generate_random_tree(binary_operators, unary_operators, p_unary, depth - 1, p_terminal, p_x, variables, real_constants), None)
+    else: 
+        return Node(
+            random.choice(binary_operators),
+            generate_random_tree(binary_operators, unary_operators, p_unary, depth - 1, p_terminal, p_x, variables, real_constants),
+            generate_random_tree(binary_operators, unary_operators, p_unary, depth - 1, p_terminal, p_x, variables, real_constants))
 
-    return Node(
-        random.choice(operators),
-        generate_random_tree(operators, depth - 1, p_terminal, p_x, variables, real_constants),
-        generate_random_tree(operators, depth - 1, p_terminal, p_x, variables, real_constants))
-
-
-def mutate(node, operators, p_x=0.5, variables=None, real_constants=False):
+def mutate(node, binary_operators, unary_operators, p_unary, p_x=0.5, variables=None, real_constants=False):
 
 
     if variables is None:
@@ -203,30 +234,45 @@ def mutate(node, operators, p_x=0.5, variables=None, real_constants=False):
     
     
     if mutate_node.is_terminal():
-        
         if random.random() < 0.5:
-            new_subtree = generate_random_tree(operators, depth=3, p_terminal=0.2, p_x=p_x, variables=variables, real_constants=real_constants)
-
+            new_subtree = generate_random_tree(binary_operators, unary_operators, p_unary, depth=3, p_terminal=0.2, p_x=p_x, variables=variables, real_constants=real_constants)
 
             mutate_node.value = new_subtree.value
             mutate_node.left = new_subtree.left
             mutate_node.right = new_subtree.right
 
-
         else:
-            if mutate_node.is_terminal():
-                if random.random() < p_x:
-                    mutate_node.value = random.choice(variables)
-                elif real_constants:
-                        constant = random.uniform(-5, 5) 
-                        mutate_node.value = str(constant)
-                else:
-                    mutate_node.value = str(random.randint(-5, 5))
+            if random.random() < p_x:
+                mutate_node.value = random.choice(variables)
+            elif real_constants:
+                    constant = random.uniform(-5, 5) 
+                    mutate_node.value = str(constant)
             else:
-                mutate_node.value = random.choice(operators)
+                mutate_node.value = str(random.randint(-5, 5))
     else:
-        # change the operator
-        mutate_node.value = random.choice(operators)
+        if mutate_node.value in unary_operators:
+            if random.random() < p_unary:
+                mutate_node.value = random.choice(unary_operators)
+                # always keep the left child
+                mutate_node.right = None
+            else: 
+                mutate_node.value = random.choice(binary_operators)
+            
+            if random.random() < p_x:
+                mutate_node.right = Node(random.choice(variables))
+            if real_constants:
+                constant = random.uniform(-5, 5) 
+                mutate_node.right = Node(str(constant))
+            else:
+                mutate_node.right = Node(str(random.randint(-5, 5)))
+        else:
+            # change the operator
+            if random.random() < p_unary:
+                mutate_node.value = random.choice(unary_operators)
+                # always keep the left child
+                mutate_node.right = None
+            else: 
+                mutate_node.value = random.choice(binary_operators)
 
 
     child.fitness = 0
