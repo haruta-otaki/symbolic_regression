@@ -26,6 +26,9 @@ class Node:
         if self.value == "sin": 
             l = self.left.evaluate(X)
             return np.sin(l)
+        elif self.value == "cos": 
+                    l = self.left.evaluate(X)
+                    return np.cos(l)
         elif self.value == "log": 
             l = self.left.evaluate(X)
             return np.log(l)

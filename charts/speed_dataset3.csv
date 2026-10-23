@@ -1,0 +1,26 @@
+config,seed,gens_to_target,seconds_to_target,gens_to_plateau
+Baseline,1,,,39
+Baseline,2,,,0
+Baseline,3,,,22
+Baseline,4,34.0,19.333470821380615,45
+Baseline,5,,,3
+Baseline,6,,,16
+Baseline,7,,,5
+Baseline,8,,,8
+Baseline,9,,,38
+Baseline,10,,,14
+No elitism,1,,,48
+No elitism,2,,,34
+No elitism,3,,,49
+No elitism,4,36.0,23.686028242111206,49
+No elitism,5,,,42
+No size penalty,1,,,47
+No size penalty,2,,,48
+No size penalty,3,,,45
+No size penalty,4,35.0,30.288945198059082,47
+No size penalty,5,,,8
+Roulette,1,,,18
+Roulette,2,,,48
+Roulette,3,,,44
+Roulette,4,,,44
+Roulette,5,,,45
